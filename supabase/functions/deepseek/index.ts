@@ -8,6 +8,8 @@ const corsHeaders = {
 
 // Function to fetch from openrouter.ai for DeepSeek model
 async function fetchDeepSeekResponse(prompt: string, apiKey: string) {
+  console.log("Sending prompt to DeepSeek:", prompt.substring(0, 100) + "...");
+  
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -47,6 +49,7 @@ async function fetchDeepSeekResponse(prompt: string, apiKey: string) {
   }
 
   const data = await response.json();
+  console.log("Received response from DeepSeek, processing...");
   return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
 }
 

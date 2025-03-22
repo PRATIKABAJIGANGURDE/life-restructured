@@ -34,10 +34,10 @@ const Onboarding = () => {
   ];
 
   const handleNextStep = async () => {
-    if (inputText.trim().length < 50) {
+    if (inputText.trim().length < 10) {
       toast({
         title: "Input too short",
-        description: "Please provide more details for better results",
+        description: "Please provide more details for better results (at least 10 characters)",
         variant: "destructive",
       });
       return;
