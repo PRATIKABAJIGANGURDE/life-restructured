@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,43 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
-const Login = () => {
-  const [email, setEmail] = useState("");
+const ResetPassword = () => {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn } = useAuth();
+  const { updatePassword } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if we have a hash in the URL which confirms this is a valid reset link
+    const hash = window.location.hash;
+    if (!hash) {
+      toast({
+        title: "Invalid reset link",
+        description: "This password reset link is invalid or has expired.",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  }, [navigate, toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (password !== confirmPassword) {
       toast({
-        title: "Error",
-        description: "Please enter both email and password",
+        title: "Passwords don't match",
+        description: "Please ensure both passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
         variant: "destructive",
       });
       return;
@@ -33,10 +55,10 @@ const Login = () => {
     
     try {
       setIsLoading(true);
-      await signIn(email, password);
-      // No need to navigate or show success toast as the AuthContext will handle it
+      await updatePassword(password);
+      // Navigate back to login is handled in the updatePassword function
     } catch (error) {
-      // Error is already handled in the signIn function
+      // Error is handled in the updatePassword function
     } finally {
       setIsLoading(false);
     }
@@ -50,45 +72,33 @@ const Login = () => {
             <div className="flex justify-center mb-4">
               <Logo size="md" />
             </div>
-            <CardTitle className="text-2xl">Welcome back</CardTitle>
+            <CardTitle className="text-2xl">Create new password</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+              Enter a new password for your account
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Button 
-                    variant="link" 
-                    className="px-0 text-sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate("/forgot-password");
-                    }}
-                  >
-                    Forgot password?
-                  </Button>
-                </div>
+                <Label htmlFor="password">New Password</Label>
                 <Input 
                   id="password" 
                   type="password" 
                   placeholder="••••••••" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="h-12"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input 
+                  id="confirmPassword" 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="h-12"
                   required
                 />
@@ -101,21 +111,21 @@ const Login = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    Updating password...
                   </>
-                ) : "Sign In"}
+                ) : "Reset password"}
               </Button>
             </form>
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{" "}
+              Remember your password?{" "}
               <Button 
                 variant="link" 
                 className="px-1"
-                onClick={() => navigate("/signup")}
+                onClick={() => navigate("/login")}
               >
-                Sign up
+                Sign in
               </Button>
             </p>
           </CardFooter>
@@ -125,4 +135,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default ResetPassword;

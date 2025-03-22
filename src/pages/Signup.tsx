@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 const Signup = () => {
   const [name, setName] = useState("");
@@ -18,44 +20,38 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp } = useAuth();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In Phase 1, we'll simulate signup for demonstration
-    setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Simple validation
-      if (!name || !email || !password) {
-        toast({
-          title: "Error",
-          description: "Please fill out all fields",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!agreeTerms) {
-        toast({
-          title: "Error",
-          description: "You must agree to the terms and conditions",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // For demo, we'll just redirect
+    if (!name || !email || !password) {
       toast({
-        title: "Account created!",
-        description: "Welcome to FixYourLife",
+        title: "Error",
+        description: "Please fill out all fields",
+        variant: "destructive",
       });
-      
-      navigate("/onboarding");
-    }, 1500);
+      return;
+    }
+    
+    if (!agreeTerms) {
+      toast({
+        title: "Error",
+        description: "You must agree to the terms and conditions",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await signUp(email, password, name);
+      // We'll stay on the signup page with a toast message asking the user to check their email
+    } catch (error) {
+      // Error is handled in the signUp function
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -119,11 +115,25 @@ const Signup = () => {
                   className="text-sm text-muted-foreground"
                 >
                   I agree to the{" "}
-                  <Button variant="link" className="px-0 text-sm" onClick={() => navigate("/terms")}>
+                  <Button 
+                    variant="link" 
+                    className="px-0 text-sm" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/terms");
+                    }}
+                  >
                     Terms of Service
                   </Button>
                   {" "}and{" "}
-                  <Button variant="link" className="px-0 text-sm" onClick={() => navigate("/privacy")}>
+                  <Button 
+                    variant="link" 
+                    className="px-0 text-sm" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate("/privacy");
+                    }}
+                  >
                     Privacy Policy
                   </Button>
                 </label>
@@ -133,7 +143,12 @@ const Signup = () => {
                 className="w-full h-12 rounded-md"
                 disabled={isLoading}
               >
-                {isLoading ? "Creating account..." : "Create account"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : "Create account"}
               </Button>
             </form>
           </CardContent>

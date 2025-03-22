@@ -1,0 +1,93 @@
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Function to fetch from openrouter.ai for DeepSeek model
+async function fetchDeepSeekResponse(prompt: string, apiKey: string) {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://fixyourlife.app',
+      'X-Title': 'FixYourLife App',
+    },
+    body: JSON.stringify({
+      model: 'deepseek/deepseek-r1-zero',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an AI life coach assistant for the FixYourLife app. You help users improve their daily routines, habits, and productivity. Keep responses concise and actionable.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('OpenRouter API error:', error);
+    throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+}
+
+serve(async (req) => {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Get the DeepSeek API key from environment variables
+    const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
+    if (!apiKey) {
+      throw new Error('DEEPSEEK_API_KEY is not set');
+    }
+
+    // Parse the request body
+    const { prompt } = await req.json();
+    
+    if (!prompt) {
+      return new Response(
+        JSON.stringify({ error: 'Prompt is required' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+
+    // Fetch response from DeepSeek
+    const response = await fetchDeepSeekResponse(prompt, apiKey);
+
+    // Return the response
+    return new Response(
+      JSON.stringify({ response }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error('Error processing request:', error);
+    
+    return new Response(
+      JSON.stringify({ error: error.message || 'An unknown error occurred' }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    );
+  }
+});
