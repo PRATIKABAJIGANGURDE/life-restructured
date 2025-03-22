@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Check, Clock, Home, LogOut, Settings, User, RefreshCw } from "lucide-react";
+import { Check, Clock, Home, LogOut, Settings, User, RefreshCw, Loader } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { generatePersonalPlan } from "@/utils/aiUtils";
@@ -73,7 +73,7 @@ const Dashboard = () => {
             
           if (error) throw error;
           
-          if (data?.onboarding_data) {
+          if (data && data.onboarding_data) {
             await regeneratePlan(data.onboarding_data);
           }
         }
@@ -101,7 +101,8 @@ const Dashboard = () => {
           .single();
           
         if (error) throw error;
-        userInputs = data?.onboarding_data;
+        
+        userInputs = data && data.onboarding_data;
       }
       
       if (!userInputs) {
@@ -241,7 +242,7 @@ const Dashboard = () => {
                 className="flex items-center gap-2"
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader className="h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
@@ -343,7 +344,7 @@ const Dashboard = () => {
                       >
                         {isLoading ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader className="mr-2 h-4 w-4 animate-spin" />
                             Processing
                           </>
                         ) : (

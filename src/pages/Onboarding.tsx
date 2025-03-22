@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader } from "lucide-react";
 import { generatePersonalPlan } from "@/utils/aiUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,7 +58,10 @@ const Onboarding = () => {
         // Save all user inputs to the profile
         if (user) {
           await supabase.from('profiles').update({
-            onboarding_data: userInputs
+            onboarding_data: {
+              ...userInputs,
+              [inputKey]: inputText
+            }
           }).eq('id', user.id);
         }
         
@@ -155,7 +158,7 @@ const Onboarding = () => {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
                     Processing
                   </>
                 ) : step === promptTexts.length ? (
