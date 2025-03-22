@@ -1,17 +1,20 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Check, Clock, Home, LogOut, Settings, User } from "lucide-react";
+import { Check, Clock, Home, LogOut, Settings, User, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { generatePersonalPlan } from "@/utils/aiUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Sample recovery plan data
-const recoveryPlanData = {
+// Default recovery plan data (fallback)
+const defaultPlanData = {
   dailySchedule: [
     { time: "06:30 AM", task: "Wake up & Morning Routine", completed: false },
     { time: "07:00 AM", task: "15 minutes of meditation", completed: false },
@@ -40,14 +43,122 @@ const recoveryPlanData = {
 };
 
 const Dashboard = () => {
-  const [schedule, setSchedule] = useState(recoveryPlanData.dailySchedule);
+  const [planData, setPlanData] = useState(defaultPlanData);
+  const [schedule, setSchedule] = useState(defaultPlanData.dailySchedule);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Load saved plan on component mount
+  useEffect(() => {
+    const loadPlan = async () => {
+      try {
+        // Try to load from localStorage first
+        const savedPlan = localStorage.getItem('userPlan');
+        if (savedPlan) {
+          const parsedPlan = JSON.parse(savedPlan);
+          setPlanData(parsedPlan);
+          setSchedule(parsedPlan.dailySchedule);
+          return;
+        }
+        
+        // If no plan in localStorage and user is logged in, try to generate one
+        if (user) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('onboarding_data')
+            .eq('id', user.id)
+            .single();
+            
+          if (error) throw error;
+          
+          if (data?.onboarding_data) {
+            await regeneratePlan(data.onboarding_data);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading plan:', error);
+        // Fallback to default plan if loading fails
+        setPlanData(defaultPlanData);
+        setSchedule(defaultPlanData.dailySchedule);
+      }
+    };
+    
+    loadPlan();
+  }, [user]);
+
+  const regeneratePlan = async (userInputs = null) => {
+    setIsLoading(true);
+    
+    try {
+      // If no inputs provided, fetch from profile
+      if (!userInputs && user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('onboarding_data')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) throw error;
+        userInputs = data?.onboarding_data;
+      }
+      
+      if (!userInputs) {
+        toast({
+          title: "Missing information",
+          description: "Please complete the onboarding process first",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Generate new plan
+      const result = await generatePersonalPlan(userInputs);
+      
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+      
+      // Update state with new plan
+      setPlanData(result);
+      setSchedule(result.dailySchedule);
+      
+      // Save to localStorage
+      localStorage.setItem('userPlan', JSON.stringify(result));
+      
+      toast({
+        title: "Success!",
+        description: "Your plan has been updated",
+      });
+    } catch (error: any) {
+      console.error('Error regenerating plan:', error);
+      toast({
+        title: "Failed to generate plan",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const toggleTaskCompletion = (index: number) => {
     const updatedSchedule = [...schedule];
     updatedSchedule[index].completed = !updatedSchedule[index].completed;
     setSchedule(updatedSchedule);
+    
+    // Update the planData state
+    setPlanData(prev => ({
+      ...prev,
+      dailySchedule: updatedSchedule
+    }));
+    
+    // Save updated schedule to localStorage
+    localStorage.setItem('userPlan', JSON.stringify({
+      ...planData,
+      dailySchedule: updatedSchedule
+    }));
     
     toast({
       title: updatedSchedule[index].completed ? "Task completed!" : "Task marked incomplete",
@@ -55,7 +166,8 @@ const Dashboard = () => {
     });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/");
     toast({
       title: "Logged out successfully",
@@ -114,11 +226,27 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="glass p-4 rounded-xl border border-blue-100">
-                      <p className="text-sm italic text-muted-foreground">{recoveryPlanData.motivationalMessage}</p>
+                      <p className="text-sm italic text-muted-foreground">{planData.motivationalMessage}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+            </div>
+            
+            {/* Regenerate Plan Button */}
+            <div className="mb-6 flex justify-end">
+              <Button 
+                onClick={() => regeneratePlan()} 
+                disabled={isLoading}
+                className="flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Regenerate Plan
+              </Button>
             </div>
             
             {/* Main Tabs */}
@@ -184,7 +312,7 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {recoveryPlanData.recoverySteps.map((step, index) => (
+                      {planData.recoverySteps.map((step, index) => (
                         <div key={index} className="flex gap-4 items-start">
                           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
                             {index + 1}
@@ -210,14 +338,17 @@ const Dashboard = () => {
                     <div className="text-center py-12">
                       <p className="text-muted-foreground mb-4">Progress tracking charts will be available in the next update.</p>
                       <Button 
-                        onClick={() => {
-                          toast({
-                            title: "Coming Soon",
-                            description: "This feature will be available in the next update!"
-                          });
-                        }}
+                        onClick={() => regeneratePlan()}
+                        disabled={isLoading}
                       >
-                        Request New Schedule
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing
+                          </>
+                        ) : (
+                          "Request New Schedule"
+                        )}
                       </Button>
                     </div>
                   </CardContent>

@@ -21,14 +21,22 @@ async function fetchDeepSeekResponse(prompt: string, apiKey: string) {
       messages: [
         {
           role: 'system',
-          content: 'You are an AI life coach assistant for the FixYourLife app. You help users improve their daily routines, habits, and productivity. Keep responses concise and actionable.'
+          content: `You are an AI life coach assistant for the FixYourLife app. You help users improve their daily routines, habits, and productivity.
+          
+          When asked to create a personalized plan, respond with a valid JSON object containing:
+          1. dailySchedule: An array of schedule items with time, task, and completed (boolean) fields
+          2. recoverySteps: An array of string steps to follow for improving life quality
+          3. motivationalMessage: A personalized motivational message
+          
+          Format your response as a proper JSON object without markdown formatting, explanations or any other text.`
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 1024,
+      max_tokens: 1500,
+      temperature: 0.7,
     }),
   });
 
@@ -68,8 +76,12 @@ serve(async (req) => {
       );
     }
 
+    console.log("Processing prompt:", prompt.substring(0, 100) + "...");
+
     // Fetch response from DeepSeek
     const response = await fetchDeepSeekResponse(prompt, apiKey);
+
+    console.log("Response received, length:", response.length);
 
     // Return the response
     return new Response(

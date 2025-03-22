@@ -8,13 +8,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { generatePersonalPlan } from "@/utils/aiUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Onboarding = () => {
   const [step, setStep] = useState(1);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userInputs, setUserInputs] = useState({
+    routine: "",
+    goals: "",
+    challenges: "",
+    habits: ""
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const promptTexts = [
     "Tell us about your current daily routine. What time do you wake up, what activities do you do, and how do you spend your time?",
@@ -23,7 +33,7 @@ const Onboarding = () => {
     "What habits would you like to build, and which ones would you like to break?",
   ];
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (inputText.trim().length < 50) {
       toast({
         title: "Input too short",
@@ -33,20 +43,57 @@ const Onboarding = () => {
       return;
     }
 
-    // For the final step, process and redirect
+    // Save the current input based on the step
+    const inputKey = Object.keys(userInputs)[step - 1];
+    setUserInputs(prev => ({
+      ...prev,
+      [inputKey]: inputText
+    }));
+
+    // For the final step, process and generate a plan
     if (step === promptTexts.length) {
       setIsLoading(true);
       
-      // Simulate processing delay
-      setTimeout(() => {
-        setIsLoading(false);
+      try {
+        // Save all user inputs to the profile
+        if (user) {
+          await supabase.from('profiles').update({
+            onboarding_data: userInputs
+          }).eq('id', user.id);
+        }
+        
+        // Generate personalized plan
+        const updatedInputs = {
+          ...userInputs,
+          [inputKey]: inputText
+        };
+        
+        const planResult = await generatePersonalPlan(updatedInputs);
+        
+        if ('error' in planResult) {
+          throw new Error(planResult.error);
+        }
+        
+        // Save the generated plan to local storage for now
+        localStorage.setItem('userPlan', JSON.stringify(planResult));
+        
+        // Navigate to dashboard
         navigate("/dashboard");
         
         toast({
           title: "Analysis complete!",
           description: "Your personalized plan is ready",
         });
-      }, 3000);
+      } catch (error: any) {
+        console.error("Error during plan generation:", error);
+        toast({
+          title: "Error generating plan",
+          description: error.message || "Please try again later",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
       
       return;
     }
