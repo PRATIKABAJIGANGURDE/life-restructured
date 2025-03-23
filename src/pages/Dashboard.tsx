@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -6,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Check, Clock, Home, LogOut, Settings, User, RefreshCw, Loader } from "lucide-react";
+import { Check, Clock, Home, LogOut, Settings, User, RefreshCw, Loader, Edit, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { generatePersonalPlan } from "@/utils/aiUtils";
+import { generatePersonalPlan, updateMotivationalMessage } from "@/utils/aiUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "@/components/ui/input";
 
-// Default recovery plan data (fallback)
 const defaultPlanData = {
   dailySchedule: [
     { time: "06:30 AM", task: "Wake up & Morning Routine", completed: false },
@@ -46,15 +45,15 @@ const Dashboard = () => {
   const [planData, setPlanData] = useState(defaultPlanData);
   const [schedule, setSchedule] = useState(defaultPlanData.dailySchedule);
   const [isLoading, setIsLoading] = useState(false);
+  const [editingMessage, setEditingMessage] = useState(false);
+  const [motivationalMessage, setMotivationalMessage] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Load saved plan on component mount
   useEffect(() => {
     const loadPlan = async () => {
       try {
-        // Try to load from localStorage first
         const savedPlan = localStorage.getItem('userPlan');
         if (savedPlan) {
           const parsedPlan = JSON.parse(savedPlan);
@@ -63,7 +62,6 @@ const Dashboard = () => {
           return;
         }
         
-        // If no plan in localStorage and user is logged in, try to generate one
         if (user) {
           const { data, error } = await supabase
             .from('profiles')
@@ -82,7 +80,6 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error('Error loading plan:', error);
-        // Fallback to default plan if loading fails
         setPlanData(defaultPlanData);
         setSchedule(defaultPlanData.dailySchedule);
       }
@@ -91,11 +88,16 @@ const Dashboard = () => {
     loadPlan();
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (planData && planData.motivationalMessage) {
+      setMotivationalMessage(planData.motivationalMessage);
+    }
+  }, [planData]);
+
   const regeneratePlan = async (userInputs = null) => {
     setIsLoading(true);
     
     try {
-      // If no inputs provided, fetch from profile
       if (!userInputs && user) {
         const { data, error } = await supabase
           .from('profiles')
@@ -118,18 +120,15 @@ const Dashboard = () => {
         return;
       }
       
-      // Generate new plan
       const result = await generatePersonalPlan(userInputs);
       
       if ('error' in result) {
         throw new Error(result.error);
       }
       
-      // Update state with new plan
       setPlanData(result);
       setSchedule(result.dailySchedule);
       
-      // Save to localStorage
       localStorage.setItem('userPlan', JSON.stringify(result));
       
       toast({
@@ -153,13 +152,11 @@ const Dashboard = () => {
     updatedSchedule[index].completed = !updatedSchedule[index].completed;
     setSchedule(updatedSchedule);
     
-    // Update the planData state
     setPlanData(prev => ({
       ...prev,
       dailySchedule: updatedSchedule
     }));
     
-    // Save updated schedule to localStorage
     localStorage.setItem('userPlan', JSON.stringify({
       ...planData,
       dailySchedule: updatedSchedule
@@ -169,6 +166,40 @@ const Dashboard = () => {
       title: updatedSchedule[index].completed ? "Task completed!" : "Task marked incomplete",
       description: updatedSchedule[index].task,
     });
+  };
+
+  const handleSaveMessage = async () => {
+    if (!user) return;
+    
+    try {
+      setPlanData(prev => ({
+        ...prev,
+        motivationalMessage
+      }));
+      
+      localStorage.setItem('userPlan', JSON.stringify({
+        ...planData,
+        motivationalMessage
+      }));
+      
+      if (user) {
+        await updateMotivationalMessage(user.id, motivationalMessage);
+      }
+      
+      setEditingMessage(false);
+      
+      toast({
+        title: "Success!",
+        description: "Your motivational message has been updated",
+      });
+    } catch (error: any) {
+      console.error('Error saving motivational message:', error);
+      toast({
+        title: "Failed to save message",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleLogout = async () => {
@@ -186,7 +217,6 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <div className="min-h-screen flex flex-col">
-        {/* Header */}
         <header className="py-4 px-4 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
           <div className="container max-w-6xl mx-auto flex justify-between items-center">
             <Logo />
@@ -207,10 +237,8 @@ const Dashboard = () => {
           </div>
         </header>
         
-        {/* Main content */}
         <div className="flex-1 py-8 px-4">
           <div className="container max-w-6xl mx-auto">
-            {/* Welcome and progress section */}
             <div className="mb-8">
               <h1 className="text-3xl font-medium">Welcome to Your Dashboard</h1>
               <p className="text-muted-foreground mb-6">Track your progress and follow your personalized plan.</p>
@@ -230,15 +258,54 @@ const Dashboard = () => {
                         <span className="text-sm font-medium">{completedTasksCount}/{schedule.length}</span>
                       </div>
                     </div>
-                    <div className="glass p-4 rounded-xl border border-blue-100">
-                      <p className="text-sm italic text-muted-foreground">{planData.motivationalMessage}</p>
+                    <div className="glass p-4 rounded-xl border border-blue-100 relative">
+                      {editingMessage ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={motivationalMessage}
+                            onChange={(e) => setMotivationalMessage(e.target.value)}
+                            className="w-full text-sm"
+                            placeholder="Enter your personal motivational message"
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setEditingMessage(false);
+                                setMotivationalMessage(planData.motivationalMessage);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              size="sm"
+                              onClick={handleSaveMessage}
+                            >
+                              <Save className="h-4 w-4 mr-1" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm italic text-muted-foreground pr-8">{motivationalMessage}</p>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="absolute top-2 right-2 h-6 w-6"
+                            onClick={() => setEditingMessage(true)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
             
-            {/* Regenerate Plan Button */}
             <div className="mb-6 flex justify-end">
               <Button 
                 onClick={() => regeneratePlan()} 
@@ -254,7 +321,6 @@ const Dashboard = () => {
               </Button>
             </div>
             
-            {/* Main Tabs */}
             <Tabs defaultValue="schedule" className="w-full">
               <TabsList className="grid grid-cols-3 w-full max-w-md">
                 <TabsTrigger value="schedule">
@@ -271,7 +337,6 @@ const Dashboard = () => {
                 </TabsTrigger>
               </TabsList>
               
-              {/* Schedule Tab */}
               <TabsContent value="schedule">
                 <Card className="glass">
                   <CardHeader>
@@ -306,7 +371,6 @@ const Dashboard = () => {
                 </Card>
               </TabsContent>
               
-              {/* Plan Tab */}
               <TabsContent value="plan">
                 <Card className="glass">
                   <CardHeader>
@@ -330,7 +394,6 @@ const Dashboard = () => {
                 </Card>
               </TabsContent>
               
-              {/* Progress Tab */}
               <TabsContent value="progress">
                 <Card className="glass">
                   <CardHeader>

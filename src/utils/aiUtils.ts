@@ -27,6 +27,29 @@ export const generateAIResponse = async (prompt: string): Promise<{ text: string
   }
 };
 
+export const updateMotivationalMessage = async (
+  userId: string, 
+  message: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        motivational_message: message 
+      })
+      .eq('id', userId);
+    
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating motivational message:', error);
+    return { 
+      success: false, 
+      error: error.message || 'Failed to update motivational message' 
+    };
+  }
+};
+
 export const generatePersonalPlan = async (
   userInputs: { [key: string]: string }
 ): Promise<{ dailySchedule: any[]; recoverySteps: string[]; motivationalMessage: string } | { error: string }> => {
