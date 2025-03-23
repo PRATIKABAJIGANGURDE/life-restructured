@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -124,11 +125,16 @@ const Dashboard = () => {
         return;
       }
       
+      console.log("Generating plan with inputs:", userInputs);
+      
+      // Explicitly call the DeepSeek AI to generate a personalized plan
       const result = await generatePersonalPlan(userInputs);
       
       if ('error' in result) {
         throw new Error(result.error);
       }
+      
+      console.log("Plan generated successfully:", result);
       
       setPlanData(result);
       setSchedule(result.dailySchedule);
@@ -137,7 +143,7 @@ const Dashboard = () => {
       
       toast({
         title: "Success!",
-        description: "Your plan has been updated",
+        description: "Your personal plan has been generated",
       });
     } catch (error: any) {
       console.error('Error regenerating plan:', error);
@@ -321,7 +327,7 @@ const Dashboard = () => {
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-                Regenerate Plan
+                Generate New Plan
               </Button>
             </div>
             
@@ -419,7 +425,7 @@ const Dashboard = () => {
                             Processing
                           </>
                         ) : (
-                          "Request New Schedule"
+                          "Generate New Plan"
                         )}
                       </Button>
                     </div>
