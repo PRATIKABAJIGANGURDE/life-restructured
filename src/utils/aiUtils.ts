@@ -42,7 +42,12 @@ export const updateMotivationalMessage = async (
     if (fetchError) throw fetchError;
     
     // Create or update the onboarding data with the motivational message
-    const onboardingData = data?.onboarding_data ? { ...data.onboarding_data } : {};
+    // Make sure onboarding_data is treated as an object with proper type checking
+    const onboardingData: Record<string, any> = 
+      data?.onboarding_data && typeof data.onboarding_data === 'object' && !Array.isArray(data.onboarding_data)
+        ? { ...data.onboarding_data as object }
+        : {};
+    
     onboardingData.motivationalMessage = message;
     
     const { error } = await supabase

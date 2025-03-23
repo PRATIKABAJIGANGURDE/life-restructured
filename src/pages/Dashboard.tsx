@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -73,9 +72,9 @@ const Dashboard = () => {
           if (error) throw error;
           
           if (data && data.onboarding_data) {
-            // If motivational message exists in onboarding_data, use it
-            if (data.onboarding_data.motivationalMessage) {
-              setMotivationalMessage(data.onboarding_data.motivationalMessage);
+            const onboardingData = data.onboarding_data;
+            if (typeof onboardingData === 'object' && onboardingData !== null && !Array.isArray(onboardingData) && 'motivationalMessage' in onboardingData) {
+              setMotivationalMessage(onboardingData.motivationalMessage as string);
             }
             await regeneratePlan(data.onboarding_data);
           } else {
@@ -177,7 +176,6 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
-      // Save to state and localStorage
       setPlanData(prev => ({
         ...prev,
         motivationalMessage
@@ -188,7 +186,6 @@ const Dashboard = () => {
         motivationalMessage
       }));
       
-      // Save to database using the updated function
       if (user) {
         await updateMotivationalMessage(user.id, motivationalMessage);
       }
