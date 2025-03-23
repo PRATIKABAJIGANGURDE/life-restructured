@@ -75,6 +75,9 @@ const Dashboard = () => {
           
           if (data && data.onboarding_data) {
             await regeneratePlan(data.onboarding_data);
+          } else {
+            console.log("No onboarding data found for user, navigating to onboarding");
+            navigate("/onboarding");
           }
         }
       } catch (error) {
@@ -86,7 +89,7 @@ const Dashboard = () => {
     };
     
     loadPlan();
-  }, [user]);
+  }, [user, navigate]);
 
   const regeneratePlan = async (userInputs = null) => {
     setIsLoading(true);
@@ -111,6 +114,7 @@ const Dashboard = () => {
           description: "Please complete the onboarding process first",
           variant: "destructive",
         });
+        navigate("/onboarding");
         return;
       }
       

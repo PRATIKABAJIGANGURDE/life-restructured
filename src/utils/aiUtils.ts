@@ -68,6 +68,8 @@ export const generatePersonalPlan = async (
       const jsonMatch = response.text.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : response.text;
       
+      console.log("JSON string to parse:", jsonStr.substring(0, 150) + "...");
+      
       // Parse the JSON response
       const planData = JSON.parse(jsonStr);
       
@@ -84,7 +86,7 @@ export const generatePersonalPlan = async (
         motivationalMessage: planData.motivationalMessage || 'Stay consistent with your plan!'
       };
     } catch (parseError) {
-      console.error('Error parsing AI response:', parseError);
+      console.error('Error parsing AI response:', parseError, "Full response:", response.text);
       return { error: 'Failed to parse AI-generated plan. Please try again.' };
     }
   } catch (error: any) {

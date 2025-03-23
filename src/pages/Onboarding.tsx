@@ -34,10 +34,10 @@ const Onboarding = () => {
   ];
 
   const handleNextStep = async () => {
-    if (inputText.trim().length < 10) {
+    if (inputText.trim().length < 3) {  // Reduced minimum length for testing
       toast({
         title: "Input too short",
-        description: "Please provide more details for better results (at least 10 characters)",
+        description: "Please provide more details for better results (at least 3 characters)",
         variant: "destructive",
       });
       return;
@@ -71,11 +71,14 @@ const Onboarding = () => {
           [inputKey]: inputText
         };
         
+        console.log("Sending inputs to generate plan:", updatedInputs);
         const planResult = await generatePersonalPlan(updatedInputs);
         
         if ('error' in planResult) {
           throw new Error(planResult.error);
         }
+        
+        console.log("Plan generated successfully:", planResult);
         
         // Save the generated plan to local storage for now
         localStorage.setItem('userPlan', JSON.stringify(planResult));
@@ -133,7 +136,7 @@ const Onboarding = () => {
                 <h3 className="text-lg font-medium">{promptTexts[step - 1]}</h3>
                 <Textarea 
                   placeholder="Type your answer here..." 
-                  className="min-h-[200px] resize-none"
+                  className="min-h-[200px] resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                 />
@@ -153,7 +156,7 @@ const Onboarding = () => {
               )}
               <Button 
                 onClick={handleNextStep}
-                disabled={isLoading || inputText.trim().length < 10}
+                disabled={isLoading || inputText.trim().length < 3} // Reduced minimum length for testing
                 className="min-w-[120px]"
               >
                 {isLoading ? (

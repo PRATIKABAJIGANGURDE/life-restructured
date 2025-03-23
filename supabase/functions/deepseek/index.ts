@@ -10,47 +10,58 @@ const corsHeaders = {
 async function fetchDeepSeekResponse(prompt: string, apiKey: string) {
   console.log("Sending prompt to DeepSeek:", prompt.substring(0, 100) + "...");
   
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://fixyourlife.app',
-      'X-Title': 'FixYourLife App',
-    },
-    body: JSON.stringify({
-      model: 'deepseek/deepseek-r1-zero',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an AI life coach assistant for the FixYourLife app. You help users improve their daily routines, habits, and productivity.
-          
-          When asked to create a personalized plan, respond with a valid JSON object containing:
-          1. dailySchedule: An array of schedule items with time, task, and completed (boolean) fields
-          2. recoverySteps: An array of string steps to follow for improving life quality
-          3. motivationalMessage: A personalized motivational message
-          
-          Format your response as a proper JSON object without markdown formatting, explanations or any other text.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      max_tokens: 1500,
-      temperature: 0.7,
-    }),
-  });
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://fixyourlife.app',
+        'X-Title': 'FixYourLife App',
+      },
+      body: JSON.stringify({
+        model: 'deepseek/deepseek-r1-zero',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an AI life coach assistant for the FixYourLife app. You help users improve their daily routines, habits, and productivity.
+            
+            When asked to create a personalized plan, respond with a valid JSON object containing:
+            1. dailySchedule: An array of schedule items with time, task, and completed (boolean) fields
+            2. recoverySteps: An array of string steps to follow for improving life quality
+            3. motivationalMessage: A personalized motivational message
+            
+            Format your response as a proper JSON object without markdown formatting, explanations or any other text.`
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 1500,
+        temperature: 0.7,
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('OpenRouter API error:', error);
-    throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('OpenRouter API error:', error);
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log("Received response from DeepSeek, processing content...");
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error("Invalid response structure from DeepSeek:", JSON.stringify(data).substring(0, 200));
+      throw new Error("Invalid response structure from DeepSeek");
+    }
+    
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Error in fetchDeepSeekResponse:", error);
+    throw error;
   }
-
-  const data = await response.json();
-  console.log("Received response from DeepSeek, processing...");
-  return data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
 }
 
 serve(async (req) => {
@@ -67,7 +78,8 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const { prompt } = await req.json();
+    const requestData = await req.json();
+    const { prompt } = requestData;
     
     if (!prompt) {
       return new Response(
@@ -85,6 +97,7 @@ serve(async (req) => {
     const response = await fetchDeepSeekResponse(prompt, apiKey);
 
     console.log("Response received, length:", response.length);
+    console.log("Sample response:", response.substring(0, 150) + "...");
 
     // Return the response
     return new Response(
