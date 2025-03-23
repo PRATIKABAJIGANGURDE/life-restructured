@@ -32,10 +32,23 @@ export const updateMotivationalMessage = async (
   message: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Store the motivational message in the onboarding_data JSON field instead
+    const { data, error: fetchError } = await supabase
+      .from('profiles')
+      .select('onboarding_data')
+      .eq('id', userId)
+      .single();
+      
+    if (fetchError) throw fetchError;
+    
+    // Create or update the onboarding data with the motivational message
+    const onboardingData = data?.onboarding_data ? { ...data.onboarding_data } : {};
+    onboardingData.motivationalMessage = message;
+    
     const { error } = await supabase
       .from('profiles')
       .update({ 
-        motivational_message: message 
+        onboarding_data: onboardingData 
       })
       .eq('id', userId);
     

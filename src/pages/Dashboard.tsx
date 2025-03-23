@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -72,6 +73,10 @@ const Dashboard = () => {
           if (error) throw error;
           
           if (data && data.onboarding_data) {
+            // If motivational message exists in onboarding_data, use it
+            if (data.onboarding_data.motivationalMessage) {
+              setMotivationalMessage(data.onboarding_data.motivationalMessage);
+            }
             await regeneratePlan(data.onboarding_data);
           } else {
             console.log("No onboarding data found for user, navigating to onboarding");
@@ -172,6 +177,7 @@ const Dashboard = () => {
     if (!user) return;
     
     try {
+      // Save to state and localStorage
       setPlanData(prev => ({
         ...prev,
         motivationalMessage
@@ -182,6 +188,7 @@ const Dashboard = () => {
         motivationalMessage
       }));
       
+      // Save to database using the updated function
       if (user) {
         await updateMotivationalMessage(user.id, motivationalMessage);
       }
