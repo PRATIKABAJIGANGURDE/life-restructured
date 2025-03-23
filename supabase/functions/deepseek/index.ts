@@ -11,6 +11,11 @@ async function fetchDeepSeekResponse(prompt: string, apiKey: string) {
   console.log("Sending prompt to DeepSeek:", prompt.substring(0, 100) + "...");
   
   try {
+    if (!apiKey) {
+      throw new Error("DEEPSEEK_API_KEY is not set or is empty");
+    }
+
+    console.log("Making request to OpenRouter API...");
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,13 +49,13 @@ async function fetchDeepSeekResponse(prompt: string, apiKey: string) {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenRouter API error:', error);
+      const errorText = await response.text();
+      console.error(`OpenRouter API error (${response.status}):`, errorText);
       throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
     }
 
+    console.log("Response received from OpenRouter API");
     const data = await response.json();
-    console.log("Received response from DeepSeek, processing content...");
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
       console.error("Invalid response structure from DeepSeek:", JSON.stringify(data).substring(0, 200));
@@ -74,14 +79,35 @@ serve(async (req) => {
     // Get the DeepSeek API key from environment variables
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
     if (!apiKey) {
-      throw new Error('DEEPSEEK_API_KEY is not set');
+      console.error("DEEPSEEK_API_KEY is not set");
+      return new Response(
+        JSON.stringify({ error: 'DEEPSEEK_API_KEY is not set in environment variables' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
     }
 
     // Parse the request body
-    const requestData = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      console.error("Error parsing request JSON:", e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+    
     const { prompt } = requestData;
     
     if (!prompt) {
+      console.error("No prompt provided in request");
       return new Response(
         JSON.stringify({ error: 'Prompt is required' }),
         {
@@ -94,7 +120,19 @@ serve(async (req) => {
     console.log("Processing prompt:", prompt.substring(0, 100) + "...");
 
     // Fetch response from DeepSeek
-    const response = await fetchDeepSeekResponse(prompt, apiKey);
+    let response;
+    try {
+      response = await fetchDeepSeekResponse(prompt, apiKey);
+    } catch (error) {
+      console.error("Error from DeepSeek API:", error);
+      return new Response(
+        JSON.stringify({ error: error.message || 'Failed to get response from DeepSeek API' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
+    }
 
     console.log("Response received, length:", response.length);
     console.log("Sample response:", response.substring(0, 150) + "...");

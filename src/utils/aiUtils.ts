@@ -55,6 +55,7 @@ export const generatePersonalPlan = async (
       }
     `;
 
+    console.log("Using prompt template with user inputs");
     const response = await generateAIResponse(promptTemplate);
     
     if ('error' in response) {
@@ -66,8 +67,12 @@ export const generatePersonalPlan = async (
       console.log("Parsing AI response");
       // Find the JSON in the response
       const jsonMatch = response.text.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : response.text;
+      if (!jsonMatch) {
+        console.error("No JSON found in response:", response.text);
+        throw new Error("Could not find valid JSON in the AI response");
+      }
       
+      const jsonStr = jsonMatch[0];
       console.log("JSON string to parse:", jsonStr.substring(0, 150) + "...");
       
       // Parse the JSON response
@@ -85,12 +90,22 @@ export const generatePersonalPlan = async (
         recoverySteps: planData.recoverySteps || [],
         motivationalMessage: planData.motivationalMessage || 'Stay consistent with your plan!'
       };
-    } catch (parseError) {
+    } catch (parseError: any) {
       console.error('Error parsing AI response:', parseError, "Full response:", response.text);
-      return { error: 'Failed to parse AI-generated plan. Please try again.' };
+      return { 
+        error: `Failed to parse AI-generated plan: ${parseError.message}. Please try again.`,
+        dailySchedule: [],
+        recoverySteps: ["Take a deep breath", "Try again in a few moments", "If the problem persists, try providing more specific information in your inputs"],
+        motivationalMessage: "We're experiencing a temporary issue. Don't give up - your journey to improvement is just beginning!"
+      };
     }
   } catch (error: any) {
     console.error('Error generating personal plan:', error);
-    return { error: error.message || 'Failed to generate personal plan' };
+    return { 
+      error: error.message || 'Failed to generate personal plan',
+      dailySchedule: [],
+      recoverySteps: ["Take a deep breath", "Try again in a few moments", "If the problem persists, try providing more specific information in your inputs"],
+      motivationalMessage: "We're experiencing a temporary issue. Don't give up - your journey to improvement is just beginning!"
+    };
   }
 };
