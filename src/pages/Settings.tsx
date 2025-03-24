@@ -45,10 +45,12 @@ const Settings = () => {
         if (data?.onboarding_data) {
           const onboardingData = data.onboarding_data;
           if (typeof onboardingData === 'object' && onboardingData !== null && !Array.isArray(onboardingData)) {
+            // Fixed: only use spread operator on object type after type checking
+            const motivationalMessage = onboardingData.motivationalMessage as string || "";
             setSettings({
               emailNotifications: true,
               planReminders: true,
-              motivationalMessage: onboardingData.motivationalMessage as string || ""
+              motivationalMessage: motivationalMessage
             });
           }
         }

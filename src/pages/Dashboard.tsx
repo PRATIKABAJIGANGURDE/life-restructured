@@ -39,6 +39,23 @@ const Dashboard = () => {
           setSchedule(parsedPlan.dailySchedule || []);
           setMotivationalMessage(parsedPlan.motivationalMessage || "");
           setIsLoading(false);
+          
+          if (user) {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', user.id)
+              .single();
+              
+            if (error) throw error;
+            
+            if (data && data.full_name) {
+              setUserName(data.full_name);
+            } else if (user.email) {
+              setUserName(user.email.split('@')[0]);
+            }
+          }
+          
           return;
         }
         
@@ -53,8 +70,8 @@ const Dashboard = () => {
           
           if (data && data.full_name) {
             setUserName(data.full_name);
-          } else {
-            setUserName(user.email?.split('@')[0] || "");
+          } else if (user.email) {
+            setUserName(user.email.split('@')[0]);
           }
           
           if (data && data.onboarding_data) {
@@ -257,7 +274,7 @@ const Dashboard = () => {
         <div className="flex-1 py-8 px-4">
           <div className="container max-w-6xl mx-auto">
             <div className="mb-8">
-              <h1 className="text-3xl font-medium">Welcome, @{userName || "User"}</h1>
+              <h1 className="text-3xl font-medium">Welcome, {userName || "User"}</h1>
               <p className="text-muted-foreground mb-6">Track your progress and follow your personalized plan.</p>
               
               <Card className="glass">
