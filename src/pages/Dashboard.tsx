@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -15,7 +14,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 
 const Dashboard = () => {
-  // Remove defaultPlanData and initialize with empty values
   const [planData, setPlanData] = useState({
     dailySchedule: [],
     recoverySteps: [],
@@ -25,6 +23,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [editingMessage, setEditingMessage] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
+  const [userName, setUserName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -46,11 +45,17 @@ const Dashboard = () => {
         if (user) {
           const { data, error } = await supabase
             .from('profiles')
-            .select('onboarding_data')
+            .select('onboarding_data, full_name')
             .eq('id', user.id)
             .single();
             
           if (error) throw error;
+          
+          if (data && data.full_name) {
+            setUserName(data.full_name);
+          } else {
+            setUserName(user.email?.split('@')[0] || "");
+          }
           
           if (data && data.onboarding_data) {
             const onboardingData = data.onboarding_data;
@@ -58,7 +63,6 @@ const Dashboard = () => {
               if ('motivationalMessage' in onboardingData) {
                 setMotivationalMessage(onboardingData.motivationalMessage as string);
               }
-              // Generate a new plan with the user's onboarding data
               await regeneratePlan(data.onboarding_data);
             } else {
               console.log("No onboarding data found for user, navigating to onboarding");
@@ -117,7 +121,6 @@ const Dashboard = () => {
       
       console.log("Generating plan with inputs:", userInputs);
       
-      // Explicitly call the DeepSeek AI to generate a personalized plan
       const result = await generatePersonalPlan(userInputs);
       
       if ('error' in result) {
@@ -214,7 +217,6 @@ const Dashboard = () => {
   const completedTasksCount = schedule.filter(task => task.completed).length;
   const progressPercentage = schedule.length > 0 ? (completedTasksCount / schedule.length) * 100 : 0;
 
-  // Show loading state while plan is being generated
   if (isLoading && schedule.length === 0) {
     return (
       <AppLayout>
@@ -255,7 +257,7 @@ const Dashboard = () => {
         <div className="flex-1 py-8 px-4">
           <div className="container max-w-6xl mx-auto">
             <div className="mb-8">
-              <h1 className="text-3xl font-medium">Welcome to Your Dashboard</h1>
+              <h1 className="text-3xl font-medium">Welcome, @{userName || "User"}</h1>
               <p className="text-muted-foreground mb-6">Track your progress and follow your personalized plan.</p>
               
               <Card className="glass">
