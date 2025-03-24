@@ -3,9 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Login from "./pages/Login";
@@ -17,6 +19,46 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
+
+// Check if user has completed onboarding
+const CheckOnboarding = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('onboarding_data')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) throw error;
+        
+        const hasCompletedOnboarding = data?.onboarding_data && 
+          typeof data.onboarding_data === 'object' && 
+          !Array.isArray(data.onboarding_data) &&
+          Object.keys(data.onboarding_data).length > 0;
+          
+        if (!hasCompletedOnboarding) {
+          console.log("User has not completed onboarding, redirecting...");
+          navigate('/onboarding');
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+      }
+    };
+    
+    if (!loading && user) {
+      checkOnboardingStatus();
+    }
+  }, [user, loading, navigate]);
+  
+  return <>{children}</>;
+};
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -47,7 +89,13 @@ const AppRoutes = () => (
     <Route path="/forgot-password" element={<AuthRoute><ForgotPassword /></AuthRoute>} />
     <Route path="/reset-password" element={<AuthRoute><ResetPassword /></AuthRoute>} />
     <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+    <Route path="/dashboard" element={
+      <ProtectedRoute>
+        <CheckOnboarding>
+          <Dashboard />
+        </CheckOnboarding>
+      </ProtectedRoute>
+    } />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

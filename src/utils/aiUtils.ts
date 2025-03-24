@@ -3,9 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const generateAIResponse = async (prompt: string): Promise<{ text: string } | { error: string }> => {
   try {
-    console.log("Sending prompt to DeepSeek function:", prompt.substring(0, 50) + "...");
+    console.log("Sending prompt to Gemini function:", prompt.substring(0, 50) + "...");
     
-    const { data, error } = await supabase.functions.invoke('deepseek', {
+    const { data, error } = await supabase.functions.invoke('gemini', {
       body: { prompt },
     });
 
@@ -15,12 +15,18 @@ export const generateAIResponse = async (prompt: string): Promise<{ text: string
     }
     
     if (!data || !data.response) {
-      console.error("Empty response from DeepSeek function");
+      console.error("Empty response from Gemini function");
       throw new Error("Failed to get a valid response from the AI");
     }
     
-    console.log("Received response from DeepSeek function");
-    return { text: data.response };
+    console.log("Received response from Gemini function");
+    
+    // If the response is already a string, return it, otherwise stringify it
+    if (typeof data.response === 'string') {
+      return { text: data.response };
+    } else {
+      return { text: JSON.stringify(data.response) };
+    }
   } catch (error: any) {
     console.error('Error generating AI response:', error);
     return { error: error.message || 'Failed to generate AI response' };
@@ -74,25 +80,10 @@ export const generatePersonalPlan = async (
     console.log("Generating personal plan with inputs:", Object.keys(userInputs));
     
     const promptTemplate = `
-      Based on the following information about a person, create a detailed daily schedule and personalized recovery plan:
-      
       Daily Routine: ${userInputs.routine || 'Not provided'}
       Goals: ${userInputs.goals || 'Not provided'}
       Challenges: ${userInputs.challenges || 'Not provided'}
       Habits: ${userInputs.habits || 'Not provided'}
-      
-      Response Format (JSON):
-      {
-        "dailySchedule": [
-          {"time": "HH:MM AM/PM", "task": "Task description", "completed": false},
-          // more schedule items...
-        ],
-        "recoverySteps": [
-          "Step 1 description",
-          // more steps...
-        ],
-        "motivationalMessage": "A personalized motivational message"
-      }
     `;
 
     console.log("Using prompt template with user inputs");
@@ -105,18 +96,31 @@ export const generatePersonalPlan = async (
     
     try {
       console.log("Parsing AI response");
-      // Find the JSON in the response
-      const jsonMatch = response.text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error("No JSON found in response:", response.text);
-        throw new Error("Could not find valid JSON in the AI response");
+      
+      // The response should be a JSON object, either as a string or already parsed
+      let planData;
+      
+      // If the response is a string, try to parse it as JSON
+      if (typeof response.text === 'string') {
+        try {
+          // Try to parse the response as JSON directly
+          planData = JSON.parse(response.text);
+        } catch (parseError) {
+          // If direct parsing fails, try to find JSON in the text
+          const jsonMatch = response.text.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) {
+            console.error("No JSON found in response:", response.text);
+            throw new Error("Could not find valid JSON in the AI response");
+          }
+          
+          const jsonStr = jsonMatch[0];
+          console.log("JSON string to parse:", jsonStr.substring(0, 150) + "...");
+          planData = JSON.parse(jsonStr);
+        }
+      } else {
+        // If it's already an object, use it directly
+        planData = response.text;
       }
-      
-      const jsonStr = jsonMatch[0];
-      console.log("JSON string to parse:", jsonStr.substring(0, 150) + "...");
-      
-      // Parse the JSON response
-      const planData = JSON.parse(jsonStr);
       
       // Validate the plan data
       if (!planData.dailySchedule || !planData.recoverySteps || !planData.motivationalMessage) {
