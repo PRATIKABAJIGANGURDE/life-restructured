@@ -32,7 +32,7 @@ export const updateMotivationalMessage = async (
   message: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // Store the motivational message in the onboarding_data JSON field instead
+    // Store the motivational message in the onboarding_data JSON field
     const { data, error: fetchError } = await supabase
       .from('profiles')
       .select('onboarding_data')
@@ -42,10 +42,9 @@ export const updateMotivationalMessage = async (
     if (fetchError) throw fetchError;
     
     // Create or update the onboarding data with the motivational message
-    // Make sure onboarding_data is treated as an object with proper type checking
-    const onboardingData: Record<string, any> = 
-      data?.onboarding_data && typeof data.onboarding_data === 'object' && !Array.isArray(data.onboarding_data)
-        ? { ...data.onboarding_data as object }
+    const onboardingData = 
+      (data?.onboarding_data && typeof data.onboarding_data === 'object' && !Array.isArray(data.onboarding_data))
+        ? { ...(data.onboarding_data as Record<string, any>) }
         : {};
     
     onboardingData.motivationalMessage = message;
@@ -69,7 +68,7 @@ export const updateMotivationalMessage = async (
 };
 
 export const generatePersonalPlan = async (
-  userInputs: { [key: string]: string }
+  userInputs: { [key: string]: any }
 ): Promise<{ dailySchedule: any[]; recoverySteps: string[]; motivationalMessage: string } | { error: string }> => {
   try {
     console.log("Generating personal plan with inputs:", Object.keys(userInputs));

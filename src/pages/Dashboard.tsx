@@ -14,37 +14,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 
-const defaultPlanData = {
-  dailySchedule: [
-    { time: "06:30 AM", task: "Wake up & Morning Routine", completed: false },
-    { time: "07:00 AM", task: "15 minutes of meditation", completed: false },
-    { time: "07:30 AM", task: "Healthy breakfast & vitamins", completed: false },
-    { time: "08:00 AM", task: "30 minutes of exercise", completed: false },
-    { time: "09:00 AM", task: "Work/Study Session 1", completed: false },
-    { time: "12:00 PM", task: "Lunch break & short walk", completed: false },
-    { time: "01:00 PM", task: "Work/Study Session 2", completed: false },
-    { time: "04:00 PM", task: "Personal development time", completed: false },
-    { time: "05:30 PM", task: "Prepare and eat dinner", completed: false },
-    { time: "07:00 PM", task: "Leisure activity (not screen-based)", completed: false },
-    { time: "09:00 PM", task: "Evening wind-down routine", completed: false },
-    { time: "10:00 PM", task: "Bedtime", completed: false },
-  ],
-  recoverySteps: [
-    "Establish a consistent sleep schedule by going to bed and waking up at the same time every day.",
-    "Incorporate daily physical activity, even if it's just a 30-minute walk.",
-    "Practice mindfulness or meditation for at least 15 minutes each day.",
-    "Limit screen time, especially before bed.",
-    "Connect with someone socially at least once a day.",
-    "Drink adequate water and focus on nutritious meals.",
-    "Set aside dedicated time for work/study with regular breaks.",
-    "Spend time each day on a hobby or activity you enjoy."
-  ],
-  motivationalMessage: "Remember, small consistent actions lead to major transformations. You've already taken the hardest step by starting this journey!"
-};
-
 const Dashboard = () => {
-  const [planData, setPlanData] = useState(defaultPlanData);
-  const [schedule, setSchedule] = useState(defaultPlanData.dailySchedule);
+  // Remove defaultPlanData and initialize with empty values
+  const [planData, setPlanData] = useState({
+    dailySchedule: [],
+    recoverySteps: [],
+    motivationalMessage: ""
+  });
+  const [schedule, setSchedule] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [editingMessage, setEditingMessage] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
@@ -54,12 +31,15 @@ const Dashboard = () => {
 
   useEffect(() => {
     const loadPlan = async () => {
+      setIsLoading(true);
       try {
         const savedPlan = localStorage.getItem('userPlan');
         if (savedPlan) {
           const parsedPlan = JSON.parse(savedPlan);
           setPlanData(parsedPlan);
-          setSchedule(parsedPlan.dailySchedule);
+          setSchedule(parsedPlan.dailySchedule || []);
+          setMotivationalMessage(parsedPlan.motivationalMessage || "");
+          setIsLoading(false);
           return;
         }
         
@@ -74,10 +54,16 @@ const Dashboard = () => {
           
           if (data && data.onboarding_data) {
             const onboardingData = data.onboarding_data;
-            if (typeof onboardingData === 'object' && onboardingData !== null && !Array.isArray(onboardingData) && 'motivationalMessage' in onboardingData) {
-              setMotivationalMessage(onboardingData.motivationalMessage as string);
+            if (typeof onboardingData === 'object' && onboardingData !== null && !Array.isArray(onboardingData)) {
+              if ('motivationalMessage' in onboardingData) {
+                setMotivationalMessage(onboardingData.motivationalMessage as string);
+              }
+              // Generate a new plan with the user's onboarding data
+              await regeneratePlan(data.onboarding_data);
+            } else {
+              console.log("No onboarding data found for user, navigating to onboarding");
+              navigate("/onboarding");
             }
-            await regeneratePlan(data.onboarding_data);
           } else {
             console.log("No onboarding data found for user, navigating to onboarding");
             navigate("/onboarding");
@@ -85,13 +71,17 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error('Error loading plan:', error);
-        setPlanData(defaultPlanData);
-        setSchedule(defaultPlanData.dailySchedule);
+        setIsLoading(false);
+        toast({
+          title: "Error loading plan",
+          description: "There was an error loading your plan. Please try again.",
+          variant: "destructive",
+        });
       }
     };
     
     loadPlan();
-  }, [user, navigate]);
+  }, [user, navigate, toast]);
 
   useEffect(() => {
     if (planData && planData.motivationalMessage) {
@@ -222,7 +212,22 @@ const Dashboard = () => {
   };
 
   const completedTasksCount = schedule.filter(task => task.completed).length;
-  const progressPercentage = (completedTasksCount / schedule.length) * 100;
+  const progressPercentage = schedule.length > 0 ? (completedTasksCount / schedule.length) * 100 : 0;
+
+  // Show loading state while plan is being generated
+  if (isLoading && schedule.length === 0) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen flex flex-col items-center justify-center">
+          <div className="text-center">
+            <Loader className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+            <h2 className="text-2xl font-medium mb-2">Generating Your Plan</h2>
+            <p className="text-muted-foreground">Please wait while we create your personalized plan...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -356,27 +361,46 @@ const Dashboard = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {schedule.map((item, index) => (
-                        <div 
-                          key={index} 
-                          className={`flex items-center gap-4 p-3 rounded-lg transition-all ${item.completed ? 'bg-green-50 line-through text-muted-foreground' : 'hover:bg-blue-50'}`}
+                    {schedule.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-muted-foreground mb-4">No schedule items yet. Generate a new plan to get started.</p>
+                        <Button 
+                          onClick={() => regeneratePlan()}
+                          disabled={isLoading}
                         >
-                          <Button 
-                            variant={item.completed ? "default" : "outline"}
-                            size="icon"
-                            className={`rounded-full h-8 w-8 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                            onClick={() => toggleTaskCompletion(index)}
+                          {isLoading ? (
+                            <>
+                              <Loader className="mr-2 h-4 w-4 animate-spin" />
+                              Processing
+                            </>
+                          ) : (
+                            "Generate New Plan"
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {schedule.map((item, index) => (
+                          <div 
+                            key={index} 
+                            className={`flex items-center gap-4 p-3 rounded-lg transition-all ${item.completed ? 'bg-green-50 line-through text-muted-foreground' : 'hover:bg-blue-50'}`}
                           >
-                            {item.completed && <Check className="h-4 w-4" />}
-                          </Button>
-                          <div className="flex-1">
-                            <div className="font-medium">{item.task}</div>
-                            <div className="text-sm text-muted-foreground">{item.time}</div>
+                            <Button 
+                              variant={item.completed ? "default" : "outline"}
+                              size="icon"
+                              className={`rounded-full h-8 w-8 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                              onClick={() => toggleTaskCompletion(index)}
+                            >
+                              {item.completed && <Check className="h-4 w-4" />}
+                            </Button>
+                            <div className="flex-1">
+                              <div className="font-medium">{item.task}</div>
+                              <div className="text-sm text-muted-foreground">{item.time}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -390,16 +414,35 @@ const Dashboard = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {planData.recoverySteps.map((step, index) => (
-                        <div key={index} className="flex gap-4 items-start">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-                            {index + 1}
+                    {planData.recoverySteps.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-muted-foreground mb-4">No recovery steps yet. Generate a new plan to get started.</p>
+                        <Button 
+                          onClick={() => regeneratePlan()}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader className="mr-2 h-4 w-4 animate-spin" />
+                              Processing
+                            </>
+                          ) : (
+                            "Generate New Plan"
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {planData.recoverySteps.map((step, index) => (
+                          <div key={index} className="flex gap-4 items-start">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+                              {index + 1}
+                            </div>
+                            <p className="pt-1">{step}</p>
                           </div>
-                          <p className="pt-1">{step}</p>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
