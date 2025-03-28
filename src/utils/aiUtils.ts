@@ -150,9 +150,15 @@ export const generatePersonalPlan = async (
         throw new Error("The AI response did not contain the expected data structure");
       }
       
+      // Ensure tasks have the completed property set to false
+      const dailySchedule = planData.dailySchedule.map(task => ({
+        ...task,
+        completed: false
+      }));
+      
       console.log("Plan generated successfully");
       return {
-        dailySchedule: planData.dailySchedule || [],
+        dailySchedule: dailySchedule,
         recoverySteps: planData.recoverySteps || [],
         motivationalMessage: planData.motivationalMessage || 'Stay consistent with your plan!'
       };

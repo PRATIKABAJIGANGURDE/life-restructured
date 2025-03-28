@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -5,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Check, Clock, Home, LogOut, Settings, User, RefreshCw, Loader, Edit, Save } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Check, Clock, Home, LogOut, Settings, User, RefreshCw, Loader, Edit, Save, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { generatePersonalPlan, updateMotivationalMessage } from "@/utils/aiUtils";
@@ -24,6 +26,8 @@ const Dashboard = () => {
   const [editingMessage, setEditingMessage] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [userName, setUserName] = useState("");
+  const [progressHistory, setProgressHistory] = useState([]);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -32,55 +36,55 @@ const Dashboard = () => {
     const loadPlan = async () => {
       setIsLoading(true);
       try {
-        const savedPlan = localStorage.getItem('userPlan');
-        if (savedPlan) {
-          const parsedPlan = JSON.parse(savedPlan);
-          setPlanData(parsedPlan);
-          setSchedule(parsedPlan.dailySchedule || []);
-          setMotivationalMessage(parsedPlan.motivationalMessage || "");
-          setIsLoading(false);
-          
-          if (user) {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', user.id)
-              .single();
-              
-            if (error) throw error;
-            
-            if (data && data.full_name) {
-              setUserName(data.full_name);
-            } else if (user.email) {
-              setUserName(user.email.split('@')[0]);
-            }
-          }
-          
-          return;
-        }
-        
         if (user) {
-          const { data, error } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('onboarding_data, full_name')
             .eq('id', user.id)
             .single();
             
-          if (error) throw error;
+          if (profileError) throw profileError;
           
-          if (data && data.full_name) {
-            setUserName(data.full_name);
+          if (profileData && profileData.full_name) {
+            setUserName(profileData.full_name);
           } else if (user.email) {
             setUserName(user.email.split('@')[0]);
           }
           
-          if (data && data.onboarding_data) {
-            const onboardingData = data.onboarding_data;
+          // Load saved plan from localStorage first
+          const savedPlan = localStorage.getItem('userPlan');
+          if (savedPlan) {
+            const parsedPlan = JSON.parse(savedPlan);
+            setPlanData(parsedPlan);
+            setSchedule(parsedPlan.dailySchedule || []);
+            
+            // Set motivational message from plan or from onboarding data
+            if (parsedPlan.motivationalMessage) {
+              setMotivationalMessage(parsedPlan.motivationalMessage);
+            } else if (profileData && 
+                      profileData.onboarding_data && 
+                      typeof profileData.onboarding_data === 'object' &&
+                      profileData.onboarding_data.motivationalMessage) {
+              setMotivationalMessage(profileData.onboarding_data.motivationalMessage);
+            }
+            
+            // Load progress history
+            const progressData = localStorage.getItem('progressHistory');
+            if (progressData) {
+              setProgressHistory(JSON.parse(progressData));
+            }
+            
+            setIsLoading(false);
+            return;
+          }
+          
+          if (profileData && profileData.onboarding_data) {
+            const onboardingData = profileData.onboarding_data;
             if (typeof onboardingData === 'object' && onboardingData !== null && !Array.isArray(onboardingData)) {
               if ('motivationalMessage' in onboardingData) {
-                setMotivationalMessage(onboardingData.motivationalMessage as string);
+                setMotivationalMessage(onboardingData.motivationalMessage);
               }
-              await regeneratePlan(data.onboarding_data);
+              await regeneratePlan(profileData.onboarding_data);
             } else {
               console.log("No onboarding data found for user, navigating to onboarding");
               navigate("/onboarding");
@@ -155,7 +159,7 @@ const Dashboard = () => {
         title: "Success!",
         description: "Your personal plan has been generated",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error regenerating plan:', error);
       toast({
         title: "Failed to generate plan",
@@ -167,7 +171,7 @@ const Dashboard = () => {
     }
   };
 
-  const toggleTaskCompletion = (index: number) => {
+  const toggleTaskCompletion = (index) => {
     const updatedSchedule = [...schedule];
     updatedSchedule[index].completed = !updatedSchedule[index].completed;
     setSchedule(updatedSchedule);
@@ -181,6 +185,38 @@ const Dashboard = () => {
       ...planData,
       dailySchedule: updatedSchedule
     }));
+    
+    // Track progress history - save a snapshot of today's completion rate
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const completedCount = updatedSchedule.filter(task => task.completed).length;
+    const completionRate = (completedCount / updatedSchedule.length) * 100;
+    
+    // Update progress history
+    const updatedHistory = [...progressHistory];
+    const existingEntryIndex = updatedHistory.findIndex(entry => entry.date === today);
+    
+    if (existingEntryIndex >= 0) {
+      // Update existing entry for today
+      updatedHistory[existingEntryIndex].completionRate = completionRate;
+    } else {
+      // Add new entry for today
+      updatedHistory.push({
+        date: today,
+        completionRate: completionRate,
+        tasksCompleted: completedCount,
+        totalTasks: updatedSchedule.length
+      });
+    }
+    
+    // Sort history by date (newest first)
+    updatedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Limit history to last 30 days
+    const limitedHistory = updatedHistory.slice(0, 30);
+    setProgressHistory(limitedHistory);
+    
+    // Save to localStorage
+    localStorage.setItem('progressHistory', JSON.stringify(limitedHistory));
     
     toast({
       title: updatedSchedule[index].completed ? "Task completed!" : "Task marked incomplete",
@@ -212,7 +248,7 @@ const Dashboard = () => {
         title: "Success!",
         description: "Your motivational message has been updated",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving motivational message:', error);
       toast({
         title: "Failed to save message",
@@ -233,6 +269,9 @@ const Dashboard = () => {
 
   const completedTasksCount = schedule.filter(task => task.completed).length;
   const progressPercentage = schedule.length > 0 ? (completedTasksCount / schedule.length) * 100 : 0;
+
+  // Format the progress history data for the UI
+  const last7DaysProgress = progressHistory.slice(0, 7).reverse();
 
   if (isLoading && schedule.length === 0) {
     return (
@@ -283,12 +322,10 @@ const Dashboard = () => {
                     <div>
                       <h2 className="text-xl font-medium mb-2">Today's Progress</h2>
                       <div className="flex items-center gap-2">
-                        <div className="w-full max-w-md h-3 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary transition-all duration-500 ease-out"
-                            style={{ width: `${progressPercentage}%` }}
-                          ></div>
-                        </div>
+                        <Progress 
+                          value={progressPercentage} 
+                          className="w-full max-w-md"
+                        />
                         <span className="text-sm font-medium">{completedTasksCount}/{schedule.length}</span>
                       </div>
                     </div>
@@ -366,7 +403,7 @@ const Dashboard = () => {
                   Recovery Plan
                 </TabsTrigger>
                 <TabsTrigger value="progress">
-                  <Check className="h-4 w-4 mr-2" />
+                  <TrendingUp className="h-4 w-4 mr-2" />
                   Progress
                 </TabsTrigger>
               </TabsList>
@@ -475,22 +512,60 @@ const Dashboard = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground mb-4">Progress tracking charts will be available in the next update.</p>
-                      <Button 
-                        onClick={() => regeneratePlan()}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader className="mr-2 h-4 w-4 animate-spin" />
-                            Processing
-                          </>
-                        ) : (
-                          "Generate New Plan"
-                        )}
-                      </Button>
-                    </div>
+                    {progressHistory.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-muted-foreground mb-4">No progress data yet. Complete tasks in your daily schedule to start tracking progress.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-md font-medium mb-3">Last 7 Days Completion Rate</h3>
+                          <div className="grid grid-cols-7 gap-2 max-w-2xl">
+                            {last7DaysProgress.map((day, index) => (
+                              <div key={index} className="flex flex-col items-center">
+                                <div className="relative w-full h-32 bg-gray-100 rounded-md overflow-hidden">
+                                  <div 
+                                    className="absolute bottom-0 w-full bg-primary"
+                                    style={{ height: `${day.completionRate}%` }}
+                                  ></div>
+                                </div>
+                                <div className="text-xs mt-1 text-muted-foreground">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                                <div className="text-xs font-medium">{Math.round(day.completionRate)}%</div>
+                              </div>
+                            ))}
+                            {/* Fill in empty days if less than 7 days of data */}
+                            {Array.from({ length: Math.max(0, 7 - last7DaysProgress.length) }).map((_, index) => (
+                              <div key={`empty-${index}`} className="flex flex-col items-center">
+                                <div className="w-full h-32 bg-gray-100 rounded-md"></div>
+                                <div className="text-xs mt-1 text-muted-foreground">-</div>
+                                <div className="text-xs font-medium">0%</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-md font-medium mb-3">Progress History</h3>
+                          <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                            {progressHistory.map((entry, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                                <div className="flex-1">
+                                  <div className="font-medium">{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
+                                  <div className="text-sm text-muted-foreground">Completed {entry.tasksCompleted} of {entry.totalTasks} tasks</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Progress 
+                                    value={entry.completionRate} 
+                                    className="w-24"
+                                  />
+                                  <span className="text-sm font-medium">{Math.round(entry.completionRate)}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
