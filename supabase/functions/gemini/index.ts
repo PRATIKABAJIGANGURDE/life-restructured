@@ -6,22 +6,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Fallback function to generate a response locally
+// Enhanced fallback function to generate a more personalized response
 function generateFallbackResponse(prompt: string) {
-  console.log("Using fallback response generator");
+  console.log("Using enhanced fallback response generator");
   
-  // Extract any information about routine, goals, challenges, and habits from the prompt
-  const routineMatch = prompt.match(/Daily Routine: ([^\n]+)/);
-  const goalsMatch = prompt.match(/Goals: ([^\n]+)/);
-  const challengesMatch = prompt.match(/Challenges: ([^\n]+)/);
-  const habitsMatch = prompt.match(/Habits: ([^\n]+)/);
+  // Extract information from the prompt for personalization
+  const routineMatch = prompt.match(/DAILY ROUTINE:\s*([^PERSONAL GOALS:]+)/s);
+  const goalsMatch = prompt.match(/PERSONAL GOALS:\s*([^CHALLENGES FACED:]+)/s);
+  const challengesMatch = prompt.match(/CHALLENGES FACED:\s*([^HABITS TO BUILD OR BREAK:]+)/s);
+  const habitsMatch = prompt.match(/HABITS TO BUILD OR BREAK:\s*([^INSTRUCTIONS:]+)/s);
   
-  const routine = routineMatch ? routineMatch[1] : 'Not provided';
-  const goals = goalsMatch ? goalsMatch[1] : 'Not provided';
-  const challenges = challengesMatch ? challengesMatch[1] : 'Not provided';
-  const habits = habitsMatch ? habitsMatch[1] : 'Not provided';
+  const routine = routineMatch ? routineMatch[1].trim() : 'Not provided';
+  const goals = goalsMatch ? goalsMatch[1].trim() : 'Not provided';
+  const challenges = challengesMatch ? challengesMatch[1].trim() : 'Not provided';
+  const habits = habitsMatch ? habitsMatch[1].trim() : 'Not provided';
   
-  // Generate a simple but personalized response
+  // Base daily schedule
   const dailySchedule = [
     {"time": "06:00 AM", "task": "Wake up & Morning Routine", "completed": false},
     {"time": "06:30 AM", "task": "Meditation / Mindfulness", "completed": false},
@@ -38,24 +38,34 @@ function generateFallbackResponse(prompt: string) {
     {"time": "10:30 PM", "task": "Sleep", "completed": false}
   ];
   
-  // Adjust first few tasks based on user input
-  if (routine.toLowerCase().includes("sleep") && routine.toLowerCase().includes("4")) {
+  // Personalize schedule based on routine information
+  if (routine.toLowerCase().includes("wake up") && routine.toLowerCase().includes("late")) {
     dailySchedule[0].time = "08:00 AM";
     dailySchedule[1].time = "08:30 AM";
     dailySchedule[2].time = "09:00 AM";
     dailySchedule[3].time = "10:00 AM";
   }
   
-  // Add a task related to habit
-  if (habits.toLowerCase().includes("movie")) {
-    dailySchedule[10].task = "Watch a movie / TV show (limited time)";
+  // Add tasks related to habits
+  if (habits.toLowerCase().includes("read")) {
+    dailySchedule[7].task = "Reading session (30 minutes)";
   }
   
-  if (habits.toLowerCase().includes("walk")) {
-    dailySchedule[7].task = "Go for a 30-minute walk";
+  if (habits.toLowerCase().includes("exercise") || habits.toLowerCase().includes("workout")) {
+    dailySchedule[3].task = "Focused workout session (strength or cardio)";
   }
   
-  // Generate recovery steps
+  if (habits.toLowerCase().includes("social media") || habits.toLowerCase().includes("phone")) {
+    dailySchedule[10].task = "Phone-free personal time / Hobby";
+  }
+  
+  // Personalize based on goals
+  if (goals.toLowerCase().includes("learn") || goals.toLowerCase().includes("study")) {
+    dailySchedule[4].task = "Study Session: New Skills Development";
+    dailySchedule[8].task = "Review Notes and Practice Skills";
+  }
+  
+  // Base recovery steps
   const recoverySteps = [
     "Establish a consistent sleep schedule - aim to be in bed by 10:30 PM and wake up at 6:30 AM.",
     "Ensure you eat regular, nutritious meals throughout the day.",
@@ -68,19 +78,37 @@ function generateFallbackResponse(prompt: string) {
   ];
   
   // Add specific recovery steps based on challenges
-  if (challenges.toLowerCase().includes("college")) {
-    recoverySteps.push("Create a realistic college attendance schedule - commit to attending at least 3 days a week initially.");
+  if (challenges.toLowerCase().includes("procrastination")) {
+    recoverySteps.push("Break large tasks into smaller, manageable chunks to avoid procrastination.");
+    recoverySteps.push("Use the Pomodoro technique: 25 minutes of focused work followed by a 5-minute break.");
   }
   
-  if (challenges.toLowerCase().includes("meals")) {
-    recoverySteps.push("Prepare simple meals in advance for days when motivation is low.");
+  if (challenges.toLowerCase().includes("motivation")) {
+    recoverySteps.push("Start each day by writing down your 'why' - the reason you're working toward your goals.");
+    recoverySteps.push("Celebrate small wins to build momentum and maintain motivation.");
   }
   
-  // Generate motivational message
+  if (challenges.toLowerCase().includes("anxiety") || challenges.toLowerCase().includes("stress")) {
+    recoverySteps.push("Practice deep breathing exercises when feeling overwhelmed or anxious.");
+    recoverySteps.push("Identify specific stress triggers and develop coping strategies for each one.");
+  }
+  
+  if (challenges.toLowerCase().includes("focus") || challenges.toLowerCase().includes("distraction")) {
+    recoverySteps.push("Create a dedicated workspace free from distractions.");
+    recoverySteps.push("Use website blockers or app timers to limit access to distracting content during focus time.");
+  }
+  
+  // Generate personalized motivational message
   let motivationalMessage = "You've taken the first step toward improving your life by seeking help. Each small change you make builds momentum toward a better future.";
   
-  if (goals.includes("retrack")) {
-    motivationalMessage = "Getting your life back on track starts with small daily actions. Each positive choice you make today is reshaping your future. You have the strength to rebuild your routine and reclaim your potential.";
+  if (goals.includes("fitness") || goals.includes("health") || goals.includes("exercise")) {
+    motivationalMessage = "Your commitment to improving your health is inspiring. Remember that each workout, each healthy meal, and each good night's sleep is an investment in your future self. Small, consistent steps will lead to remarkable changes over time.";
+  } else if (goals.includes("career") || goals.includes("work") || goals.includes("professional")) {
+    motivationalMessage = "Your professional ambitions deserve your dedication. Every skill you sharpen, every connection you make, and every challenge you overcome is building the career you envision. Stay focused on your path while celebrating each milestone along the way.";
+  } else if (goals.includes("balance") || goals.includes("stress") || goals.includes("peace")) {
+    motivationalMessage = "Finding balance isn't about perfection—it's about making intentional choices each day. As you implement your new routine, remember to be patient with yourself. The calm and clarity you seek will grow with each mindful decision you make.";
+  } else if (challenges.includes("overwhelm") || challenges.includes("too much")) {
+    motivationalMessage = "When everything feels overwhelming, remember that you only need to focus on the next small step. Breaking down your journey into manageable pieces makes the impossible possible. Trust the process and trust yourself.";
   }
   
   return {
@@ -111,18 +139,7 @@ async function fetchGeminiResponse(prompt: string, apiKey: string) {
           {
             parts: [
               {
-                text: `You are an AI life coach assistant for the FixYourLife app. You help users improve their daily routines, habits, and productivity.
-                
-                Based on the following information about a person, create a detailed daily schedule and personalized recovery plan:
-                
-                ${prompt}
-                
-                Respond with ONLY a valid JSON object containing:
-                1. dailySchedule: An array of schedule items with time, task, and completed (boolean) fields
-                2. recoverySteps: An array of string steps to follow for improving life quality
-                3. motivationalMessage: A personalized motivational message
-                
-                Format your response as a proper JSON object without any explanation or additional text.`
+                text: prompt
               }
             ]
           }

@@ -86,7 +86,9 @@ const Settings = () => {
       
       // Update onboarding data with new settings
       const updatedOnboardingData = {
-        ...currentData?.onboarding_data,
+        ...((currentData?.onboarding_data && typeof currentData.onboarding_data === 'object' && !Array.isArray(currentData.onboarding_data)) 
+          ? currentData.onboarding_data as Record<string, any>
+          : {}),
         motivationalMessage: settings.motivationalMessage
       };
       

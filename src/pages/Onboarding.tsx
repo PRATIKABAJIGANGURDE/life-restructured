@@ -26,11 +26,20 @@ const Onboarding = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Enhanced prompts with more guidance for better responses
   const promptTexts = [
-    "Tell us about your current daily routine. What time do you wake up, what activities do you do, and how do you spend your time?",
-    "What are your main goals and aspirations? What would you like to achieve in the next few months?",
-    "What challenges or obstacles are you currently facing in your life? What's preventing you from reaching your goals?",
-    "What habits would you like to build, and which ones would you like to break?",
+    "Tell us about your current daily routine. What time do you wake up? What activities fill your day? When do you typically go to sleep? Be as detailed as possible to help us create a personalized plan for you.",
+    "What are your main goals and aspirations? These could be short-term goals for the next few weeks or longer-term ambitions. What areas of your life do you most want to improve (health, career, relationships, personal growth, etc.)?",
+    "What challenges or obstacles are you currently facing? These might be external circumstances, internal struggles, or habits that are holding you back. Understanding your challenges helps us create a plan that addresses your specific needs.",
+    "What habits would you like to build or break? Which positive routines do you want to establish in your life? Which negative patterns would you like to overcome? List as many as you'd like to address.",
+  ];
+
+  // Enhanced helper prompts to guide user responses
+  const helperPrompts = [
+    "Example: I wake up around 7:30 AM, often feel rushed in the morning, work from 9-5, have dinner around 7 PM, and usually watch TV until midnight.",
+    "Example: I want to improve my fitness, advance in my career, reduce stress, and make time for creative hobbies.",
+    "Example: I struggle with procrastination, feel overwhelmed by responsibilities, have trouble maintaining work-life balance, and often lack motivation.",
+    "Example: I want to build habits like daily exercise, reading, and meditation. I want to break habits like excessive social media use, poor sleep schedule, and unhealthy snacking.",
   ];
 
   const handleNextStep = async () => {
@@ -135,7 +144,7 @@ const Onboarding = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">{promptTexts[step - 1]}</h3>
                 <Textarea 
-                  placeholder="Type your answer here..." 
+                  placeholder={helperPrompts[step - 1]} 
                   className="min-h-[200px] resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}

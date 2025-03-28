@@ -79,14 +79,36 @@ export const generatePersonalPlan = async (
   try {
     console.log("Generating personal plan with inputs:", Object.keys(userInputs));
     
+    // Enhanced prompt template with more specific instructions for better AI responses
     const promptTemplate = `
-      Daily Routine: ${userInputs.routine || 'Not provided'}
-      Goals: ${userInputs.goals || 'Not provided'}
-      Challenges: ${userInputs.challenges || 'Not provided'}
-      Habits: ${userInputs.habits || 'Not provided'}
+      You are a life coach AI assistant. Create a highly personalized daily plan and recovery strategy based on the following user information:
+      
+      DAILY ROUTINE:
+      ${userInputs.routine || 'Not provided'}
+      
+      PERSONAL GOALS:
+      ${userInputs.goals || 'Not provided'}
+      
+      CHALLENGES FACED:
+      ${userInputs.challenges || 'Not provided'}
+      
+      HABITS TO BUILD OR BREAK:
+      ${userInputs.habits || 'Not provided'}
+      
+      INSTRUCTIONS:
+      1. Create a realistic daily schedule with specific times that aligns with their current routine but introduces positive changes.
+      2. Suggest practical steps for recovery that directly address their stated challenges.
+      3. Write a personalized motivational message that references their specific goals and challenges.
+      4. Format your response ONLY as a valid JSON object with these fields:
+         - dailySchedule: Array of objects with {time, task, completed: false}
+         - recoverySteps: Array of strings with actionable advice
+         - motivationalMessage: A single motivational string personalized to them
+      
+      Make your response detailed and tailored to their specific situation. Use a supportive, encouraging tone.
+      DO NOT include any explanations or text outside the JSON structure.
     `;
 
-    console.log("Using prompt template with user inputs");
+    console.log("Using enhanced prompt template for better personalization");
     const response = await generateAIResponse(promptTemplate);
     
     if ('error' in response) {
