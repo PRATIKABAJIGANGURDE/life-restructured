@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 export const generateAIResponse = async (prompt: string): Promise<{ text: string } | { error: string }> => {
   try {
@@ -73,9 +74,22 @@ export const updateMotivationalMessage = async (
   }
 };
 
+// Define proper interfaces for the plan data
+interface ScheduleItem {
+  time: string;
+  task: string;
+  completed: boolean;
+}
+
+interface PlanData {
+  dailySchedule: ScheduleItem[];
+  recoverySteps: string[];
+  motivationalMessage: string;
+}
+
 export const generatePersonalPlan = async (
   userInputs: { [key: string]: any }
-): Promise<{ dailySchedule: any[]; recoverySteps: string[]; motivationalMessage: string } | { error: string }> => {
+): Promise<PlanData | { error: string }> => {
   try {
     console.log("Generating personal plan with inputs:", Object.keys(userInputs));
     
@@ -120,7 +134,7 @@ export const generatePersonalPlan = async (
       console.log("Parsing AI response");
       
       // The response should be a JSON object, either as a string or already parsed
-      let planData;
+      let planData: PlanData;
       
       // If the response is a string, try to parse it as JSON
       if (typeof response.text === 'string') {
@@ -141,7 +155,7 @@ export const generatePersonalPlan = async (
         }
       } else {
         // If it's already an object, use it directly
-        planData = response.text;
+        planData = response.text as unknown as PlanData;
       }
       
       // Validate the plan data

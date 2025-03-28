@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -14,19 +13,39 @@ import { generatePersonalPlan, updateMotivationalMessage } from "@/utils/aiUtils
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
+import { Json } from "@/integrations/supabase/types";
+
+interface ScheduleItem {
+  time: string;
+  task: string;
+  completed: boolean;
+}
+
+interface ProgressHistoryItem {
+  date: string;
+  completionRate: number;
+  tasksCompleted: number;
+  totalTasks: number;
+}
+
+interface PlanData {
+  dailySchedule: ScheduleItem[];
+  recoverySteps: string[];
+  motivationalMessage: string;
+}
 
 const Dashboard = () => {
-  const [planData, setPlanData] = useState({
+  const [planData, setPlanData] = useState<PlanData>({
     dailySchedule: [],
     recoverySteps: [],
     motivationalMessage: ""
   });
-  const [schedule, setSchedule] = useState([]);
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [editingMessage, setEditingMessage] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [userName, setUserName] = useState("");
-  const [progressHistory, setProgressHistory] = useState([]);
+  const [progressHistory, setProgressHistory] = useState<ProgressHistoryItem[]>([]);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -51,24 +70,25 @@ const Dashboard = () => {
             setUserName(user.email.split('@')[0]);
           }
           
-          // Load saved plan from localStorage first
           const savedPlan = localStorage.getItem('userPlan');
           if (savedPlan) {
             const parsedPlan = JSON.parse(savedPlan);
             setPlanData(parsedPlan);
             setSchedule(parsedPlan.dailySchedule || []);
             
-            // Set motivational message from plan or from onboarding data
             if (parsedPlan.motivationalMessage) {
               setMotivationalMessage(parsedPlan.motivationalMessage);
             } else if (profileData && 
                       profileData.onboarding_data && 
                       typeof profileData.onboarding_data === 'object' &&
+                      !Array.isArray(profileData.onboarding_data) &&
                       profileData.onboarding_data.motivationalMessage) {
-              setMotivationalMessage(profileData.onboarding_data.motivationalMessage);
+              const onboardingData = profileData.onboarding_data as Record<string, Json>;
+              if (onboardingData.motivationalMessage) {
+                setMotivationalMessage(String(onboardingData.motivationalMessage));
+              }
             }
             
-            // Load progress history
             const progressData = localStorage.getItem('progressHistory');
             if (progressData) {
               setProgressHistory(JSON.parse(progressData));
@@ -81,8 +101,9 @@ const Dashboard = () => {
           if (profileData && profileData.onboarding_data) {
             const onboardingData = profileData.onboarding_data;
             if (typeof onboardingData === 'object' && onboardingData !== null && !Array.isArray(onboardingData)) {
-              if ('motivationalMessage' in onboardingData) {
-                setMotivationalMessage(onboardingData.motivationalMessage);
+              const typedOnboardingData = onboardingData as Record<string, Json>;
+              if (typedOnboardingData.motivationalMessage) {
+                setMotivationalMessage(String(typedOnboardingData.motivationalMessage));
               }
               await regeneratePlan(profileData.onboarding_data);
             } else {
@@ -171,7 +192,7 @@ const Dashboard = () => {
     }
   };
 
-  const toggleTaskCompletion = (index) => {
+  const toggleTaskCompletion = (index: number) => {
     const updatedSchedule = [...schedule];
     updatedSchedule[index].completed = !updatedSchedule[index].completed;
     setSchedule(updatedSchedule);
@@ -186,36 +207,30 @@ const Dashboard = () => {
       dailySchedule: updatedSchedule
     }));
     
-    // Track progress history - save a snapshot of today's completion rate
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
     const completedCount = updatedSchedule.filter(task => task.completed).length;
-    const completionRate = (completedCount / updatedSchedule.length) * 100;
+    const totalTasks = updatedSchedule.length || 1;
+    const completionRate = (completedCount / totalTasks) * 100;
     
-    // Update progress history
     const updatedHistory = [...progressHistory];
     const existingEntryIndex = updatedHistory.findIndex(entry => entry.date === today);
     
     if (existingEntryIndex >= 0) {
-      // Update existing entry for today
       updatedHistory[existingEntryIndex].completionRate = completionRate;
     } else {
-      // Add new entry for today
       updatedHistory.push({
         date: today,
         completionRate: completionRate,
         tasksCompleted: completedCount,
-        totalTasks: updatedSchedule.length
+        totalTasks: totalTasks
       });
     }
     
-    // Sort history by date (newest first)
-    updatedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+    updatedHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    // Limit history to last 30 days
     const limitedHistory = updatedHistory.slice(0, 30);
     setProgressHistory(limitedHistory);
     
-    // Save to localStorage
     localStorage.setItem('progressHistory', JSON.stringify(limitedHistory));
     
     toast({
@@ -270,7 +285,6 @@ const Dashboard = () => {
   const completedTasksCount = schedule.filter(task => task.completed).length;
   const progressPercentage = schedule.length > 0 ? (completedTasksCount / schedule.length) * 100 : 0;
 
-  // Format the progress history data for the UI
   const last7DaysProgress = progressHistory.slice(0, 7).reverse();
 
   if (isLoading && schedule.length === 0) {
@@ -533,7 +547,6 @@ const Dashboard = () => {
                                 <div className="text-xs font-medium">{Math.round(day.completionRate)}%</div>
                               </div>
                             ))}
-                            {/* Fill in empty days if less than 7 days of data */}
                             {Array.from({ length: Math.max(0, 7 - last7DaysProgress.length) }).map((_, index) => (
                               <div key={`empty-${index}`} className="flex flex-col items-center">
                                 <div className="w-full h-32 bg-gray-100 rounded-md"></div>
