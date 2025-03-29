@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,8 +19,25 @@ import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
-// Create a client
-const queryClient = new QueryClient();
+// Create a new QueryClient for each component render
+const App = () => {
+  // Create a new QueryClient instance
+  const queryClient = new QueryClient();
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <TooltipProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <AppRoutes />
+          </AuthProvider>
+        </TooltipProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 // Check if user has completed onboarding
 const CheckOnboarding = ({ children }: { children: React.ReactNode }) => {
@@ -104,22 +120,5 @@ const AppRoutes = () => (
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
-
-const App = () => {
-  // Create a React component to wrap everything
-  return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <TooltipProvider>
-          <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
-          </AuthProvider>
-        </TooltipProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-  );
-};
 
 export default App;

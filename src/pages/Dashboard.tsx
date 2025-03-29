@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Check, Clock, Home, LogOut, Settings, User, RefreshCw, Loader, Edit, Save, TrendingUp } from "lucide-react";
+import { Check, Clock, Home, LogOut, Settings, User, RefreshCw, Loader, Edit, Save, TrendingUp, RefreshCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { generatePersonalPlan, updateMotivationalMessage } from "@/utils/aiUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Json } from "@/integrations/supabase/types";
 
 interface ScheduleItem {
@@ -239,6 +240,32 @@ const Dashboard = () => {
     });
   };
 
+  const resetDailyTasks = () => {
+    if (!schedule.length) return;
+    
+    const resetSchedule = schedule.map(item => ({
+      ...item,
+      completed: false
+    }));
+    
+    setSchedule(resetSchedule);
+    
+    setPlanData(prev => ({
+      ...prev,
+      dailySchedule: resetSchedule
+    }));
+    
+    localStorage.setItem('userPlan', JSON.stringify({
+      ...planData,
+      dailySchedule: resetSchedule
+    }));
+    
+    toast({
+      title: "Daily tasks reset",
+      description: "All tasks have been marked as incomplete",
+    });
+  };
+
   const handleSaveMessage = async () => {
     if (!user) return;
     
@@ -391,7 +418,32 @@ const Dashboard = () => {
               </Card>
             </div>
             
-            <div className="mb-6 flex justify-end">
+            <div className="mb-6 flex justify-end gap-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    disabled={isLoading || schedule.length === 0}
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    Reset Daily Tasks
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset all daily tasks?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will mark all tasks as incomplete. Your progress history will be preserved.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={resetDailyTasks}>Reset</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
               <Button 
                 onClick={() => regeneratePlan()} 
                 disabled={isLoading}
