@@ -71,6 +71,39 @@ const Dashboard = () => {
             setUserName(user.email.split('@')[0]);
           }
           
+          const lastResetDate = localStorage.getItem('lastResetDate');
+          const today = new Date().toLocaleDateString();
+          
+          if (lastResetDate !== today) {
+            console.log('New day detected, resetting tasks');
+            localStorage.setItem('lastResetDate', today);
+            
+            const savedPlan = localStorage.getItem('userPlan');
+            if (savedPlan) {
+              const parsedPlan = JSON.parse(savedPlan);
+              if (parsedPlan.dailySchedule && parsedPlan.dailySchedule.length > 0) {
+                const resetSchedule = parsedPlan.dailySchedule.map((item: ScheduleItem) => ({
+                  ...item,
+                  completed: false
+                }));
+                
+                const updatedPlan = {
+                  ...parsedPlan,
+                  dailySchedule: resetSchedule
+                };
+                
+                localStorage.setItem('userPlan', JSON.stringify(updatedPlan));
+                setPlanData(updatedPlan);
+                setSchedule(resetSchedule);
+                
+                toast({
+                  title: "Daily tasks reset",
+                  description: "Tasks have been automatically reset for a new day",
+                });
+              }
+            }
+          }
+          
           const savedPlan = localStorage.getItem('userPlan');
           if (savedPlan) {
             const parsedPlan = JSON.parse(savedPlan);
@@ -128,6 +161,52 @@ const Dashboard = () => {
     };
     
     loadPlan();
+    
+    const checkMidnightReset = () => {
+      const now = new Date();
+      const lastResetDate = localStorage.getItem('lastResetDate');
+      const today = now.toLocaleDateString();
+      
+      if (lastResetDate !== today) {
+        console.log('Midnight passed, resetting tasks');
+        localStorage.setItem('lastResetDate', today);
+        
+        const savedPlan = localStorage.getItem('userPlan');
+        if (savedPlan) {
+          const parsedPlan = JSON.parse(savedPlan);
+          if (parsedPlan.dailySchedule && parsedPlan.dailySchedule.length > 0) {
+            const resetSchedule = parsedPlan.dailySchedule.map((item: ScheduleItem) => ({
+              ...item,
+              completed: false
+            }));
+            
+            const updatedPlan = {
+              ...parsedPlan,
+              dailySchedule: resetSchedule
+            };
+            
+            localStorage.setItem('userPlan', JSON.stringify(updatedPlan));
+            setPlanData(updatedPlan);
+            setSchedule(resetSchedule);
+            
+            toast({
+              title: "Daily tasks reset",
+              description: "Tasks have been automatically reset for a new day",
+            });
+          }
+        }
+      }
+    };
+    
+    const intervalId = setInterval(checkMidnightReset, 60000);
+    
+    if (!localStorage.getItem('lastResetDate')) {
+      localStorage.setItem('lastResetDate', new Date().toLocaleDateString());
+    }
+    
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [user, navigate, toast]);
 
   useEffect(() => {
@@ -435,6 +514,7 @@ const Dashboard = () => {
                     <AlertDialogTitle>Reset all daily tasks?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This will mark all tasks as incomplete. Your progress history will be preserved.
+                      Note: Tasks are automatically reset at midnight each day.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
