@@ -681,7 +681,7 @@ const Dashboard = () => {
                               className={`rounded-lg transition-all ${
                                 item.completed ? 'bg-green-50 text-muted-foreground' : 'hover:bg-blue-50'
                               } ${
-                                expandedTaskIndex === index ? 'border-2 border-black' : ''
+                                expandedTaskIndex === index ? 'shadow-md border border-primary/30' : ''
                               }`}
                             >
                               <Collapsible
@@ -718,18 +718,18 @@ const Dashboard = () => {
                                         toggleTaskExpansion(index);
                                       }}
                                     >
-                                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expandedTaskIndex === index ? 'rotate-180' : ''}`} />
+                                      <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${expandedTaskIndex === index ? 'rotate-180' : ''}`} />
                                     </Button>
                                   </CollapsibleTrigger>
                                 </div>
                                 
                                 <CollapsibleContent className="px-3 pb-3 pt-0 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                                  <div className="border-t mt-2 pt-3">
+                                  <div className="border-t mt-2 pt-3 animate-fade-in">
                                     <h4 className="font-medium text-sm mb-2">Task Details:</h4>
                                     <p className="text-sm text-gray-600 mb-3">{taskInfo.details}</p>
                                     
                                     {taskInfo.mealSuggestions && taskInfo.mealSuggestions.length > 0 && (
-                                      <div>
+                                      <div className="animate-slide-up">
                                         <h4 className="font-medium text-sm mb-1">Suggested Options:</h4>
                                         <ul className="list-disc pl-5 text-sm text-gray-600 space-y-1">
                                           {taskInfo.mealSuggestions.map((suggestion, i) => (
