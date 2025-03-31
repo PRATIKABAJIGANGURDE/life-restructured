@@ -689,12 +689,18 @@ const Dashboard = () => {
                                 onOpenChange={() => {}}
                                 className="w-full"
                               >
-                                <div className="relative flex items-center gap-4 p-3">
+                                <div 
+                                  className="relative flex items-center gap-4 p-3 cursor-pointer"
+                                  onClick={() => toggleTaskExpansion(index)}
+                                >
                                   <Button 
                                     variant={item.completed ? "default" : "outline"}
                                     size="icon"
                                     className={`rounded-full h-8 w-8 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                                    onClick={() => toggleTaskCompletion(index)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleTaskCompletion(index);
+                                    }}
                                   >
                                     {item.completed && <Check className="h-4 w-4" />}
                                   </Button>
@@ -702,11 +708,16 @@ const Dashboard = () => {
                                     <div className={`font-medium ${item.completed ? 'line-through' : ''}`}>{item.task}</div>
                                     <div className="text-sm text-muted-foreground">{item.time}</div>
                                   </div>
-                                  <CollapsibleTrigger asChild onClick={(e) => {
-                                    e.preventDefault();
-                                    toggleTaskExpansion(index);
-                                  }}>
-                                    <Button variant="ghost" size="sm" className="gap-1">
+                                  <CollapsibleTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="gap-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleTaskExpansion(index);
+                                      }}
+                                    >
                                       <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expandedTaskIndex === index ? 'rotate-180' : ''}`} />
                                     </Button>
                                   </CollapsibleTrigger>
