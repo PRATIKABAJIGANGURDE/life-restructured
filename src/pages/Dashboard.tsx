@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -679,7 +678,11 @@ const Dashboard = () => {
                           return (
                             <div 
                               key={index} 
-                              className={`rounded-lg transition-all ${item.completed ? 'bg-green-50 text-muted-foreground' : 'hover:bg-blue-50'}`}
+                              className={`rounded-lg transition-all ${
+                                item.completed ? 'bg-green-50 text-muted-foreground' : 'hover:bg-blue-50'
+                              } ${
+                                expandedTaskIndex === index ? 'border-2 border-black' : ''
+                              }`}
                             >
                               <Collapsible
                                 open={expandedTaskIndex === index}
