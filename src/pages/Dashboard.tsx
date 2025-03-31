@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Logo } from "@/components/ui/logo";
@@ -16,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Json } from "@/integrations/supabase/types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface ScheduleItem {
   time: string;
@@ -51,6 +52,7 @@ const Dashboard = () => {
   const [motivationalMessage, setMotivationalMessage] = useState("");
   const [userName, setUserName] = useState("");
   const [progressHistory, setProgressHistory] = useState<ProgressHistoryItem[]>([]);
+  const [expandedTaskIndex, setExpandedTaskIndex] = useState<number | null>(null);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -469,6 +471,14 @@ const Dashboard = () => {
     };
   };
 
+  const toggleTaskExpansion = (index: number) => {
+    if (expandedTaskIndex === index) {
+      setExpandedTaskIndex(null);
+    } else {
+      setExpandedTaskIndex(index);
+    }
+  };
+
   const completedTasksCount = schedule.filter(task => task.completed).length;
   const progressPercentage = schedule.length > 0 ? (completedTasksCount / schedule.length) * 100 : 0;
 
@@ -662,36 +672,46 @@ const Dashboard = () => {
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         {schedule.map((item, index) => {
                           const taskInfo = getTaskDetails(item.task);
                           
                           return (
                             <div 
                               key={index} 
-                              className={`relative flex items-center gap-4 p-3 rounded-lg transition-all ${item.completed ? 'bg-green-50 text-muted-foreground' : 'hover:bg-blue-50'}`}
+                              className={`rounded-lg transition-all ${item.completed ? 'bg-green-50 text-muted-foreground' : 'hover:bg-blue-50'}`}
                             >
-                              <Button 
-                                variant={item.completed ? "default" : "outline"}
-                                size="icon"
-                                className={`rounded-full h-8 w-8 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                                onClick={() => toggleTaskCompletion(index)}
+                              <Collapsible
+                                open={expandedTaskIndex === index}
+                                onOpenChange={() => {}}
+                                className="w-full"
                               >
-                                {item.completed && <Check className="h-4 w-4" />}
-                              </Button>
-                              <div className="flex-1">
-                                <div className={`font-medium ${item.completed ? 'line-through' : ''}`}>{item.task}</div>
-                                <div className="text-sm text-muted-foreground">{item.time}</div>
-                              </div>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Info className="h-4 w-4" />
+                                <div className="relative flex items-center gap-4 p-3">
+                                  <Button 
+                                    variant={item.completed ? "default" : "outline"}
+                                    size="icon"
+                                    className={`rounded-full h-8 w-8 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                                    onClick={() => toggleTaskCompletion(index)}
+                                  >
+                                    {item.completed && <Check className="h-4 w-4" />}
                                   </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="bg-white p-4 w-72 shadow-lg">
-                                  <div>
-                                    <h3 className="font-medium mb-2">Task Details</h3>
+                                  <div className="flex-1">
+                                    <div className={`font-medium ${item.completed ? 'line-through' : ''}`}>{item.task}</div>
+                                    <div className="text-sm text-muted-foreground">{item.time}</div>
+                                  </div>
+                                  <CollapsibleTrigger asChild onClick={(e) => {
+                                    e.preventDefault();
+                                    toggleTaskExpansion(index);
+                                  }}>
+                                    <Button variant="ghost" size="sm" className="gap-1">
+                                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expandedTaskIndex === index ? 'rotate-180' : ''}`} />
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                </div>
+                                
+                                <CollapsibleContent className="px-3 pb-3 pt-0 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                                  <div className="border-t mt-2 pt-3">
+                                    <h4 className="font-medium text-sm mb-2">Task Details:</h4>
                                     <p className="text-sm text-gray-600 mb-3">{taskInfo.details}</p>
                                     
                                     {taskInfo.mealSuggestions && taskInfo.mealSuggestions.length > 0 && (
@@ -705,8 +725,8 @@ const Dashboard = () => {
                                       </div>
                                     )}
                                   </div>
-                                </PopoverContent>
-                              </Popover>
+                                </CollapsibleContent>
+                              </Collapsible>
                             </div>
                           );
                         })}
