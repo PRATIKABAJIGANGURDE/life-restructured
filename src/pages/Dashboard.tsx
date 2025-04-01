@@ -471,11 +471,7 @@ const Dashboard = () => {
   };
 
   const toggleTaskExpansion = (index: number) => {
-    if (expandedTaskIndex === index) {
-      setExpandedTaskIndex(null);
-    } else {
-      setExpandedTaskIndex(index);
-    }
+    setExpandedTaskIndex(prev => prev === index ? null : index);
   };
 
   const completedTasksCount = schedule.filter(task => task.completed).length;
@@ -678,7 +674,7 @@ const Dashboard = () => {
                           return (
                             <div 
                               key={index} 
-                              className={`rounded-lg transition-all ${
+                              className={`rounded-lg transition-all duration-200 ${
                                 item.completed ? 'bg-green-50 text-muted-foreground' : 'hover:bg-blue-50'
                               } ${
                                 expandedTaskIndex === index ? 'shadow-md border border-primary/30' : ''
@@ -696,7 +692,7 @@ const Dashboard = () => {
                                   <Button 
                                     variant={item.completed ? "default" : "outline"}
                                     size="icon"
-                                    className={`rounded-full h-8 w-8 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                                    className={`rounded-full h-8 w-8 transition-colors duration-300 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleTaskCompletion(index);
@@ -718,18 +714,18 @@ const Dashboard = () => {
                                         toggleTaskExpansion(index);
                                       }}
                                     >
-                                      <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${expandedTaskIndex === index ? 'rotate-180' : ''}`} />
+                                      <ChevronDown className={`h-4 w-4 transition-transform duration-400 ease-in-out ${expandedTaskIndex === index ? 'rotate-180' : ''}`} />
                                     </Button>
                                   </CollapsibleTrigger>
                                 </div>
                                 
-                                <CollapsibleContent className="px-3 pb-3 pt-0 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                                  <div className="border-t mt-2 pt-3 animate-fade-in">
+                                <CollapsibleContent className="px-3 pb-3 pt-0">
+                                  <div className="border-t mt-2 pt-3 animate-fade-in transition-all duration-300 ease-in-out">
                                     <h4 className="font-medium text-sm mb-2">Task Details:</h4>
                                     <p className="text-sm text-gray-600 mb-3">{taskInfo.details}</p>
                                     
                                     {taskInfo.mealSuggestions && taskInfo.mealSuggestions.length > 0 && (
-                                      <div className="animate-slide-up">
+                                      <div className="animate-slide-up transition-all duration-500 ease-in-out">
                                         <h4 className="font-medium text-sm mb-1">Suggested Options:</h4>
                                         <ul className="list-disc pl-5 text-sm text-gray-600 space-y-1">
                                           {taskInfo.mealSuggestions.map((suggestion, i) => (
