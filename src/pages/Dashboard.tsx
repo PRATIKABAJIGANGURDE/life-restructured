@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +8,7 @@ import { generatePersonalPlan } from "@/utils/aiUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Json } from "@/integrations/supabase/types";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import refactored components
 import { DailyProgress } from "@/components/dashboard/DailyProgress";
@@ -56,6 +56,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -368,11 +369,11 @@ const Dashboard = () => {
   if (isLoading && schedule.length === 0) {
     return (
       <AppLayout>
-        <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
           <div className="text-center">
-            <Loader className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h2 className="text-2xl font-medium mb-2">Generating Your Plan</h2>
-            <p className="text-muted-foreground">Please wait while we create your personalized plan...</p>
+            <Loader className="h-10 w-10 md:h-12 md:w-12 animate-spin mx-auto mb-4 text-primary" />
+            <h2 className="text-xl md:text-2xl font-medium mb-2">Generating Your Plan</h2>
+            <p className="text-muted-foreground text-sm md:text-base">Please wait while we create your personalized plan...</p>
           </div>
         </div>
       </AppLayout>
@@ -384,11 +385,11 @@ const Dashboard = () => {
       <div className="min-h-screen flex flex-col">
         <DashboardHeader handleLogout={handleLogout} />
         
-        <div className="flex-1 py-8 px-4">
+        <div className="flex-1 py-4 md:py-8 px-3 md:px-4">
           <div className="container max-w-6xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl font-medium">Welcome, {userName || "User"}</h1>
-              <p className="text-muted-foreground mb-6">Track your progress and follow your personalized plan.</p>
+            <div className="mb-6 md:mb-8">
+              <h1 className="text-2xl md:text-3xl font-medium">Welcome, {userName || "User"}</h1>
+              <p className="text-muted-foreground text-sm md:text-base mb-4 md:mb-6">Track your progress and follow your personalized plan.</p>
               
               <DailyProgress 
                 completedTasksCount={completedTasksCount}
@@ -410,22 +411,22 @@ const Dashboard = () => {
             />
             
             <Tabs defaultValue="schedule" className="w-full">
-              <TabsList className="grid grid-cols-3 w-full max-w-md">
-                <TabsTrigger value="schedule">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Daily Schedule
+              <TabsList className="grid grid-cols-3 w-full max-w-md mb-2">
+                <TabsTrigger value="schedule" className="text-xs md:text-sm">
+                  <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                  <span className="hidden xs:inline">Daily</span> Schedule
                 </TabsTrigger>
-                <TabsTrigger value="plan">
-                  <Home className="h-4 w-4 mr-2" />
-                  Recovery Plan
+                <TabsTrigger value="plan" className="text-xs md:text-sm">
+                  <Home className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                  <span className="hidden xs:inline">Recovery</span> Plan
                 </TabsTrigger>
-                <TabsTrigger value="progress">
-                  <TrendingUp className="h-4 w-4 mr-2" />
+                <TabsTrigger value="progress" className="text-xs md:text-sm">
+                  <TrendingUp className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                   Progress
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="schedule">
+              <TabsContent value="schedule" className="mt-2 md:mt-4">
                 <TaskList 
                   schedule={schedule}
                   isLoading={isLoading}
@@ -436,7 +437,7 @@ const Dashboard = () => {
                 />
               </TabsContent>
               
-              <TabsContent value="plan">
+              <TabsContent value="plan" className="mt-2 md:mt-4">
                 <RecoveryPlan 
                   recoverySteps={planData.recoverySteps}
                   isLoading={isLoading}
@@ -444,7 +445,7 @@ const Dashboard = () => {
                 />
               </TabsContent>
               
-              <TabsContent value="progress">
+              <TabsContent value="progress" className="mt-2 md:mt-4">
                 <ProgressHistory progressHistory={progressHistory} />
               </TabsContent>
             </Tabs>
