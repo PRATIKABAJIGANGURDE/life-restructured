@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
 import { format, isToday, isSameMonth, startOfMonth } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DayProps } from "react-day-picker";
 
 interface ProgressHistoryItem {
   date: string;
@@ -45,7 +46,8 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
   });
 
   // Custom renderer for calendar dates
-  const renderDay = (date: Date) => {
+  const renderDay = (props: DayProps) => {
+    const { date, ...rest } = props;
     const dateStr = format(date, 'yyyy-MM-dd');
     const hasProgress = dateStr in progressByDate;
     const progressData = progressByDate[dateStr];
@@ -122,3 +124,4 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
     </Card>
   );
 };
+
