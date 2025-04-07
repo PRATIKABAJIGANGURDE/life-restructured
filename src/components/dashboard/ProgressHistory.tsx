@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Calendar } from "@/components/ui/calendar";
-import { format, isToday, isSameMonth, startOfMonth } from "date-fns";
+import { format, isToday, isSameMonth } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DayProps } from "react-day-picker";
 
@@ -24,12 +24,13 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const isMobile = useIsMobile();
 
-  // Function to determine dot color based on completion rate
-  const getDotColorClass = (completion: number) => {
+  // Function to determine circle color based on completion rate
+  const getCompletionColor = (completion: number) => {
     if (completion >= 80) return "bg-green-500";
     if (completion >= 50) return "bg-yellow-500";
-    if (completion >= 1) return "bg-orange-500";
-    return "bg-gray-300";
+    if (completion >= 20) return "bg-orange-500";
+    if (completion > 0) return "bg-red-400";
+    return "bg-gray-200";
   };
 
   // Create a map of dates with progress data
@@ -50,18 +51,23 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
     const { date, ...rest } = props;
     const dateStr = format(date, 'yyyy-MM-dd');
     const hasProgress = dateStr in progressByDate;
-    const progressData = progressByDate[dateStr];
+    const progressData = hasProgress ? progressByDate[dateStr] : null;
     
     return (
-      <div className="relative flex h-full w-full items-center justify-center p-0">
-        <span className={`${isToday(date) ? 'font-bold' : ''}`}>
-          {date.getDate()}
-        </span>
+      <div className="relative flex h-9 w-9 items-center justify-center p-0">
         {hasProgress && (
           <div 
-            className={`absolute -bottom-1 h-1.5 w-1.5 rounded-full ${getDotColorClass(progressData.completionRate)}`}
-            title={`${Math.round(progressData.completionRate)}% completed`}
+            className={`absolute inset-0 rounded-full ${getCompletionColor(progressData!.completionRate)} opacity-20`}
+            aria-hidden="true"
           />
+        )}
+        <span 
+          className={`z-10 ${isToday(date) ? 'font-bold' : ''} ${hasProgress ? 'text-foreground' : 'text-muted-foreground'}`}
+        >
+          {date.getDate()}
+        </span>
+        {hasProgress && progressData!.completionRate >= 80 && (
+          <div className="absolute top-0 right-0 h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />
         )}
       </div>
     );
@@ -84,7 +90,7 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
           <div className="space-y-6">
             <div>
               <h3 className="text-md font-medium mb-3">Monthly Activity</h3>
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center mb-6">
                 <Calendar
                   mode="default"
                   defaultMonth={currentMonth}
@@ -95,6 +101,25 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
                     Day: renderDay
                   }}
                 />
+              </div>
+              
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                  <span>80-100%</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+                  <span>50-79%</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-orange-500"></div>
+                  <span>20-49%</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-red-400"></div>
+                  <span>1-19%</span>
+                </div>
               </div>
             </div>
             
@@ -124,4 +149,3 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
     </Card>
   );
 };
-
