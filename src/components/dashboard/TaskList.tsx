@@ -77,4 +77,4 @@ export const TaskList: React.FC<TaskListProps> = ({
       </CardContent>
     </Card>
   );
-};
+}

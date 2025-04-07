@@ -1,7 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Calendar } from "@/components/ui/calendar";
+import { format, isToday, isSameMonth, startOfMonth } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProgressHistoryItem {
   date: string;
@@ -17,7 +20,50 @@ interface ProgressHistoryProps {
 export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
   progressHistory,
 }) => {
-  const last7DaysProgress = progressHistory.slice(0, 7).reverse();
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const isMobile = useIsMobile();
+
+  // Function to determine dot color based on completion rate
+  const getDotColorClass = (completion: number) => {
+    if (completion >= 80) return "bg-green-500";
+    if (completion >= 50) return "bg-yellow-500";
+    if (completion >= 1) return "bg-orange-500";
+    return "bg-gray-300";
+  };
+
+  // Create a map of dates with progress data
+  const progressByDate = progressHistory.reduce<Record<string, ProgressHistoryItem>>((acc, entry) => {
+    const dateString = entry.date.split('T')[0];
+    acc[dateString] = entry;
+    return acc;
+  }, {});
+
+  // Filter progress history for the currently selected month
+  const currentMonthProgress = progressHistory.filter(entry => {
+    const entryDate = new Date(entry.date);
+    return isSameMonth(entryDate, currentMonth);
+  });
+
+  // Custom renderer for calendar dates
+  const renderDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const hasProgress = dateStr in progressByDate;
+    const progressData = progressByDate[dateStr];
+    
+    return (
+      <div className="relative flex h-full w-full items-center justify-center p-0">
+        <span className={`${isToday(date) ? 'font-bold' : ''}`}>
+          {date.getDate()}
+        </span>
+        {hasProgress && (
+          <div 
+            className={`absolute -bottom-1 h-1.5 w-1.5 rounded-full ${getDotColorClass(progressData.completionRate)}`}
+            title={`${Math.round(progressData.completionRate)}% completed`}
+          />
+        )}
+      </div>
+    );
+  };
 
   return (
     <Card className="glass">
@@ -35,34 +81,25 @@ export const ProgressHistory: React.FC<ProgressHistoryProps> = ({
         ) : (
           <div className="space-y-6">
             <div>
-              <h3 className="text-md font-medium mb-3">Last 7 Days Completion Rate</h3>
-              <div className="grid grid-cols-7 gap-2 max-w-2xl">
-                {last7DaysProgress.map((day, index) => (
-                  <div key={index} className="flex flex-col items-center">
-                    <div className="relative w-full h-32 bg-gray-100 rounded-md overflow-hidden">
-                      <div 
-                        className="absolute bottom-0 w-full bg-primary"
-                        style={{ height: `${day.completionRate}%` }}
-                      ></div>
-                    </div>
-                    <div className="text-xs mt-1 text-muted-foreground">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                    <div className="text-xs font-medium">{Math.round(day.completionRate)}%</div>
-                  </div>
-                ))}
-                {Array.from({ length: Math.max(0, 7 - last7DaysProgress.length) }).map((_, index) => (
-                  <div key={`empty-${index}`} className="flex flex-col items-center">
-                    <div className="w-full h-32 bg-gray-100 rounded-md"></div>
-                    <div className="text-xs mt-1 text-muted-foreground">-</div>
-                    <div className="text-xs font-medium">0%</div>
-                  </div>
-                ))}
+              <h3 className="text-md font-medium mb-3">Monthly Activity</h3>
+              <div className="flex justify-center mb-4">
+                <Calendar
+                  mode="default"
+                  defaultMonth={currentMonth}
+                  onMonthChange={setCurrentMonth}
+                  selected={[]}
+                  className="rounded-md border"
+                  components={{
+                    Day: renderDay
+                  }}
+                />
               </div>
             </div>
             
             <div>
               <h3 className="text-md font-medium mb-3">Progress History</h3>
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                {progressHistory.map((entry, index) => (
+              <div className={`space-y-2 ${isMobile ? "max-h-60" : "max-h-80"} overflow-y-auto pr-2`}>
+                {currentMonthProgress.map((entry, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
                     <div className="flex-1">
                       <div className="font-medium">{new Date(entry.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
