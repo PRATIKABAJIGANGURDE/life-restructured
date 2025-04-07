@@ -9,8 +9,8 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, className }: AppLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col antialiased">
-      <main className={cn("flex-1", className)}>
+    <div className="min-h-screen flex flex-col antialiased overflow-x-hidden">
+      <main className={cn("flex-1 w-full", className)}>
         {children}
       </main>
     </div>
