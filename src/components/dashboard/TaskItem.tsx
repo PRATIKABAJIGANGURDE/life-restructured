@@ -3,6 +3,7 @@ import React from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ScheduleItem {
   time: string;
@@ -29,6 +30,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 }) => {
   const taskInfo = getTaskDetails(item.task);
   const isExpanded = expandedTaskIndex === index;
+  const isMobile = useIsMobile();
 
   return (
     <div 
@@ -44,29 +46,31 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         className="w-full"
       >
         <div 
-          className="relative flex items-center gap-4 p-3 cursor-pointer"
+          className="relative flex items-center gap-2 md:gap-4 p-2 md:p-3 cursor-pointer"
           onClick={() => toggleTaskExpansion(index)}
         >
           <Button 
             variant={item.completed ? "default" : "outline"}
             size="icon"
-            className={`rounded-full h-8 w-8 transition-colors duration-300 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
+            className={`rounded-full h-6 w-6 md:h-8 md:w-8 min-w-6 min-h-6 transition-colors duration-300 flex-shrink-0 ${item.completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
               toggleTaskCompletion(index);
             }}
           >
-            {item.completed && <Check className="h-4 w-4" />}
+            {item.completed && <Check className="h-3 w-3 md:h-4 md:w-4" />}
           </Button>
-          <div className="flex-1">
-            <div className={`font-medium ${item.completed ? 'line-through' : ''}`}>{item.task}</div>
-            <div className="text-sm text-muted-foreground">{item.time}</div>
+          <div className="flex-1 min-w-0">
+            <div className={`font-medium text-sm md:text-base truncate ${item.completed ? 'line-through' : ''}`}>
+              {item.task}
+            </div>
+            <div className="text-xs md:text-sm text-muted-foreground">{item.time}</div>
           </div>
           <CollapsibleTrigger asChild>
             <Button 
               variant="ghost" 
-              size="sm" 
-              className="gap-1"
+              size={isMobile ? "sm" : "default"}
+              className="p-1 md:p-2 h-auto md:h-8 w-auto flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
                 toggleTaskExpansion(index);
@@ -79,15 +83,15 @@ export const TaskItem: React.FC<TaskItemProps> = ({
           </CollapsibleTrigger>
         </div>
         
-        <CollapsibleContent className="px-3 pb-3 pt-0">
-          <div className="border-t mt-2 pt-3 animate-fade-in transition-all duration-300 ease-in-out">
-            <h4 className="font-medium text-sm mb-2">Task Details:</h4>
-            <p className="text-sm text-gray-600 mb-3">{taskInfo.details}</p>
+        <CollapsibleContent className="px-2 md:px-3 pb-2 md:pb-3 pt-0">
+          <div className="border-t mt-1 md:mt-2 pt-2 md:pt-3 animate-fade-in transition-all duration-300 ease-in-out">
+            <h4 className="font-medium text-xs md:text-sm mb-1 md:mb-2">Task Details:</h4>
+            <p className="text-xs md:text-sm text-gray-600 mb-2 md:mb-3">{taskInfo.details}</p>
             
             {taskInfo.mealSuggestions && taskInfo.mealSuggestions.length > 0 && (
               <div className="animate-slide-up transition-all duration-500 ease-in-out">
-                <h4 className="font-medium text-sm mb-1">Suggested Options:</h4>
-                <ul className="list-disc pl-5 text-sm text-gray-600 space-y-1">
+                <h4 className="font-medium text-xs md:text-sm mb-1">Suggested Options:</h4>
+                <ul className="list-disc pl-4 md:pl-5 text-xs md:text-sm text-gray-600 space-y-0.5 md:space-y-1">
                   {taskInfo.mealSuggestions.map((suggestion, i) => (
                     <li key={i}>{suggestion}</li>
                   ))}
