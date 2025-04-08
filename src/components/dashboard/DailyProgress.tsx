@@ -1,20 +1,22 @@
-
-import React from "react";
-import { Progress } from "@/components/ui/progress";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Edit, Save } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { updateMotivationalMessage } from "@/utils/aiUtils";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Edit2, Save, BarChart } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Link } from "react-router-dom";
 
 interface DailyProgressProps {
   completedTasksCount: number;
   totalTasks: number;
   motivationalMessage: string;
   editingMessage: boolean;
-  setEditingMessage: (editing: boolean) => void;
-  setMotivationalMessage: (message: string) => void;
+  setEditingMessage: (value: boolean) => void;
+  setMotivationalMessage: (value: string) => void;
   planData: any;
   userId?: string;
 }
@@ -29,95 +31,120 @@ export const DailyProgress: React.FC<DailyProgressProps> = ({
   planData,
   userId
 }) => {
+  const [message, setMessage] = useState(motivationalMessage);
   const { toast } = useToast();
-  const progressPercentage = totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 0;
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setMessage(motivationalMessage);
+  }, [motivationalMessage]);
+
+  const completionRate = totalTasks > 0 ? (completedTasksCount / totalTasks) * 100 : 0;
 
   const handleSaveMessage = async () => {
-    if (!userId) return;
-    
-    try {
-      localStorage.setItem('userPlan', JSON.stringify({
-        ...planData,
-        motivationalMessage
-      }));
-      
-      if (userId) {
-        await updateMotivationalMessage(userId, motivationalMessage);
-      }
-      
-      setEditingMessage(false);
-      
+    if (!userId) {
       toast({
-        title: "Success!",
-        description: "Your motivational message has been updated",
+        title: "Not authenticated",
+        description: "Please sign in to save your motivational message.",
+        variant: "destructive",
       });
-    } catch (error) {
-      console.error('Error saving motivational message:', error);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ onboarding_data: { ...planData, motivationalMessage: message } })
+        .eq('id', userId);
+
+      if (error) {
+        throw error;
+      }
+
+      setMotivationalMessage(message);
+      setEditingMessage(false);
+
+      // Update local storage
+      const storedPlan = localStorage.getItem('userPlan');
+      if (storedPlan) {
+        const updatedPlan = { ...JSON.parse(storedPlan), motivationalMessage: message };
+        localStorage.setItem('userPlan', JSON.stringify(updatedPlan));
+      }
+
       toast({
-        title: "Failed to save message",
-        description: error.message || "Please try again later",
+        title: "Message saved",
+        description: "Your motivational message has been updated.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error saving message",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
   return (
-    <Card className="glass">
-      <CardContent className="py-6">
-        <div className="flex flex-col md:flex-row gap-6 justify-between">
+    <Card className="glass transition-all">
+      <CardContent className="p-4 md:p-6">
+        <div className="flex justify-between items-start mb-2 md:mb-4">
           <div>
-            <h2 className="text-xl font-medium mb-2">Today's Progress</h2>
-            <div className="flex items-center gap-2">
-              <Progress 
-                value={progressPercentage} 
-                className="w-full max-w-md"
+            <h3 className="text-lg md:text-xl font-medium mb-1">Daily Progress</h3>
+            <p className="text-sm text-muted-foreground">
+              {completedTasksCount} of {totalTasks} tasks completed
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/progress-analytics">
+              <Button 
+                variant="outline" 
+                size={isMobile ? "sm" : "default"}
+                className="flex items-center gap-2"
+              >
+                <BarChart className="h-4 w-4" />
+                <span className="hidden md:inline">Analytics</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <Progress value={completionRate} className="mb-4" />
+
+        <div className="mb-4">
+          <h4 className="text-md font-medium mb-1">Motivational Message</h4>
+          {editingMessage ? (
+            <div className="flex flex-col gap-2">
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="resize-none"
               />
-              <span className="text-sm font-medium">{completedTasksCount}/{totalTasks}</span>
-            </div>
-          </div>
-          <div className="glass p-4 rounded-xl border border-blue-100 relative">
-            {editingMessage ? (
-              <div className="space-y-2">
-                <Input
-                  value={motivationalMessage}
-                  onChange={(e) => setMotivationalMessage(e.target.value)}
-                  className="w-full text-sm"
-                  placeholder="Enter your personal motivational message"
-                />
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      setEditingMessage(false);
-                      setMotivationalMessage(planData.motivationalMessage);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    size="sm"
-                    onClick={handleSaveMessage}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm italic text-muted-foreground pr-8">{motivationalMessage}</p>
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="absolute top-2 right-2 h-6 w-6"
-                  onClick={() => setEditingMessage(true)}
-                >
-                  <Edit className="h-3 w-3" />
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={() => {
+                  setMessage(motivationalMessage);
+                  setEditingMessage(false);
+                }}>
+                  Cancel
                 </Button>
-              </>
-            )}
-          </div>
+                <Button size="sm" onClick={handleSaveMessage}>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <Badge variant="secondary">{message || "No message set"}</Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingMessage(true)}
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

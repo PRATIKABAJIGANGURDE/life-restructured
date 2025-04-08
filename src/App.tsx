@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,10 +19,9 @@ import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Suggestions from "./pages/Suggestions";
+import ProgressAnalytics from "./pages/ProgressAnalytics";
 
-// Create a new QueryClient for each component render
 const App = () => {
-  // Create a new QueryClient instance
   const queryClient = new QueryClient();
   
   return (
@@ -41,7 +39,6 @@ const App = () => {
   );
 };
 
-// Check if user has completed onboarding
 const CheckOnboarding = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -81,7 +78,6 @@ const CheckOnboarding = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
@@ -91,7 +87,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Auth route component (redirects if already logged in)
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
@@ -118,6 +113,7 @@ const AppRoutes = () => (
         </CheckOnboarding>
       </ProtectedRoute>
     } />
+    <Route path="/progress-analytics" element={<ProtectedRoute><ProgressAnalytics /></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
