@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Suggestions from "./pages/Suggestions";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
+import Integration from "./pages/Integration";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -114,6 +116,7 @@ const AppRoutes = () => (
       </ProtectedRoute>
     } />
     <Route path="/progress-analytics" element={<ProtectedRoute><ProgressAnalytics /></ProtectedRoute>} />
+    <Route path="/integration" element={<ProtectedRoute><Integration /></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
