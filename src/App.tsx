@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +19,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Suggestions from "./pages/Suggestions";
 
 // Create a new QueryClient for each component render
 const App = () => {
@@ -103,6 +105,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Index />} />
     <Route path="/about" element={<About />} />
+    <Route path="/suggestions" element={<Suggestions />} />
     <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
     <Route path="/signup" element={<AuthRoute><Signup /></AuthRoute>} />
     <Route path="/forgot-password" element={<AuthRoute><ForgotPassword /></AuthRoute>} />

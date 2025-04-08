@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
-import { User, Settings, LogOut, Menu, X } from "lucide-react";
+import { User, Settings, LogOut, Menu, X, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -38,6 +38,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   <User className="h-5 w-5 mr-2" />
                   Profile
                 </Button>
+                <Button variant="ghost" size="sm" onClick={() => { navigate("/suggestions"); setIsMenuOpen(false); }} className="w-full justify-start">
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  Suggestions
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => { navigate("/settings"); setIsMenuOpen(false); }} className="w-full justify-start">
                   <Settings className="h-5 w-5 mr-2" />
                   Settings
@@ -54,6 +58,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
               <User className="h-5 w-5 mr-1" />
               Profile
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/suggestions")}>
+              <MessageSquare className="h-5 w-5 mr-1" />
+              Suggestions
             </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
               <Settings className="h-5 w-5 mr-1" />
