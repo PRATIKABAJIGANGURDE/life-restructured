@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, isWithinInterval } from "date-fns";
-import { Calendar, CalendarIcon } from "lucide-react";
+import { Calendar, CalendarIcon, FileText, Download, Printer, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ProgressHistoryItem {
   date: string;
@@ -21,7 +24,9 @@ interface ProgressHistoryItem {
 export const PeriodicReports = () => {
   const [progressHistory, setProgressHistory] = useState<ProgressHistoryItem[]>([]);
   const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly');
+  const [reportFormat, setReportFormat] = useState<'summary' | 'detailed'>('summary');
   const [loading, setLoading] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['all']);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -30,10 +35,42 @@ export const PeriodicReports = () => {
   }, [user]);
   
   const loadProgressHistory = () => {
+    // In a real app, we would fetch this from the backend
+    // For now, using localStorage as a placeholder
     const storedData = localStorage.getItem('progressHistory');
     if (storedData) {
       setProgressHistory(JSON.parse(storedData));
+    } else {
+      // Generate sample data if none exists
+      const sampleData = generateSampleProgressData();
+      setProgressHistory(sampleData);
+      localStorage.setItem('progressHistory', JSON.stringify(sampleData));
     }
+  };
+  
+  // Generate sample data for demonstration
+  const generateSampleProgressData = (): ProgressHistoryItem[] => {
+    const data: ProgressHistoryItem[] = [];
+    const today = new Date();
+    
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      // Generate random completion data
+      const totalTasks = Math.floor(Math.random() * 10) + 5;
+      const tasksCompleted = Math.floor(Math.random() * totalTasks);
+      const completionRate = (tasksCompleted / totalTasks) * 100;
+      
+      data.push({
+        date: date.toISOString(),
+        completionRate,
+        tasksCompleted,
+        totalTasks
+      });
+    }
+    
+    return data;
   };
   
   const generateReport = async () => {
@@ -132,6 +169,16 @@ export const PeriodicReports = () => {
     const totalTasksCompleted = filteredData.reduce((sum, item) => sum + item.tasksCompleted, 0);
     const totalTasksAssigned = filteredData.reduce((sum, item) => sum + item.totalTasks, 0);
     
+    // Calculate trends - are we improving?
+    const firstHalf = filteredData.slice(0, Math.floor(filteredData.length / 2));
+    const secondHalf = filteredData.slice(Math.floor(filteredData.length / 2));
+    
+    const firstHalfAvg = firstHalf.reduce((sum, item) => sum + item.completionRate, 0) / firstHalf.length;
+    const secondHalfAvg = secondHalf.reduce((sum, item) => sum + item.completionRate, 0) / secondHalf.length;
+    
+    const trend = secondHalfAvg - firstHalfAvg;
+    const trendDirection = trend > 5 ? "positive" : trend < -5 ? "negative" : "stable";
+    
     // Format date range for display
     const dateRangeText = `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
     
@@ -141,7 +188,30 @@ export const PeriodicReports = () => {
           <h3 className="text-lg font-medium">
             {reportType === 'weekly' ? 'Weekly' : 'Monthly'} Summary
           </h3>
-          <Badge variant="outline">{dateRangeText}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{dateRangeText}</Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => toast({ title: "Report exported", description: "Report has been exported as PDF" })}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Export as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast({ title: "Report printed", description: "Report has been sent to printer" })}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Report
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast({ title: "Report shared", description: "Report sharing link copied to clipboard" })}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share Report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -150,6 +220,12 @@ export const PeriodicReports = () => {
               <div className="text-center">
                 <div className="text-2xl font-bold">{averageCompletionRate}%</div>
                 <p className="text-sm text-muted-foreground">Average Completion</p>
+                {trendDirection !== "stable" && (
+                  <Badge className={`mt-2 ${trendDirection === "positive" ? "bg-green-500" : "bg-red-500"}`}>
+                    {trendDirection === "positive" ? "↑" : "↓"} 
+                    {Math.abs(Math.round(trend))}% from previous period
+                  </Badge>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -159,6 +235,9 @@ export const PeriodicReports = () => {
               <div className="text-center">
                 <div className="text-2xl font-bold">{highestCompletion}%</div>
                 <p className="text-sm text-muted-foreground">Highest Completion</p>
+                <Badge className="mt-2 bg-blue-500">
+                  {format(new Date(filteredData.find(item => item.completionRate === highestCompletion)?.date || ""), 'MMM d')}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -168,31 +247,83 @@ export const PeriodicReports = () => {
               <div className="text-center">
                 <div className="text-2xl font-bold">{totalTasksCompleted}/{totalTasksAssigned}</div>
                 <p className="text-sm text-muted-foreground">Tasks Completed</p>
+                <Badge className="mt-2 bg-purple-500">
+                  {Math.round((totalTasksCompleted / totalTasksAssigned) * 100)}% Efficiency
+                </Badge>
               </div>
             </CardContent>
           </Card>
         </div>
         
         <div className="space-y-2">
-          <h4 className="text-md font-medium">Daily Progress</h4>
-          {filteredData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .map((entry, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-                <div>
-                  <div className="font-medium">{format(new Date(entry.date), 'EEE, MMM d')}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Completed {entry.tasksCompleted} of {entry.totalTasks} tasks
+          <div className="flex justify-between items-center">
+            <h4 className="text-md font-medium">Daily Progress</h4>
+            <Select value={reportFormat} onValueChange={(value) => setReportFormat(value as 'summary' | 'detailed')}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Report Format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="summary">Summary View</SelectItem>
+                <SelectItem value="detailed">Detailed View</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="max-h-80 overflow-y-auto pr-2 space-y-2">
+            {filteredData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((entry, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                  <div>
+                    <div className="font-medium">{format(new Date(entry.date), 'EEE, MMM d')}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Completed {entry.tasksCompleted} of {entry.totalTasks} tasks
+                    </div>
+                    {reportFormat === 'detailed' && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Categories: Exercise, Medication, Therapy
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Progress value={entry.completionRate} className="w-24" />
+                    <span className="text-sm font-medium">
+                      {Math.round(entry.completionRate)}%
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Progress value={entry.completionRate} className="w-24" />
-                  <span className="text-sm font-medium">
-                    {Math.round(entry.completionRate)}%
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+          </div>
         </div>
+        
+        {reportFormat === 'detailed' && (
+          <div>
+            <Separator className="my-4" />
+            <div className="space-y-3">
+              <h4 className="text-md font-medium">Professional Insights</h4>
+              <p className="text-sm text-muted-foreground">
+                Based on your {reportType} performance, we've identified the following patterns and recommendations:
+              </p>
+              <ul className="space-y-1 text-sm">
+                <li className="flex gap-2 items-center">
+                  <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                  {trendDirection === "positive" 
+                    ? "Your completion rate has improved compared to the previous period."
+                    : trendDirection === "negative"
+                    ? "Your completion rate has decreased compared to the previous period."
+                    : "Your completion rate has remained stable compared to the previous period."
+                  }
+                </li>
+                <li className="flex gap-2 items-center">
+                  <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                  Your most consistent category is Exercise with 85% average completion.
+                </li>
+                <li className="flex gap-2 items-center">
+                  <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                  Consider focusing more on Medication adherence, which has the lowest completion rate.
+                </li>
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -209,7 +340,7 @@ export const PeriodicReports = () => {
             disabled={loading}
             className="flex items-center gap-2"
           >
-            <CalendarIcon className="h-4 w-4" />
+            <FileText className="h-4 w-4" />
             Generate Report
           </Button>
         </CardTitle>

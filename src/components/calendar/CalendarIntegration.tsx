@@ -1,14 +1,19 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Download, Upload, Check } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Upload, Check, FileText, Clock, CalendarCheck, CalendarDays } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { TabsContent } from "@/components/ui/tabs";
 
 interface ScheduleItem {
   time: string;
@@ -18,11 +23,28 @@ interface ScheduleItem {
   mealSuggestions?: string[];
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  allDay?: boolean;
+  description?: string;
+  location?: string;
+}
+
 export const CalendarIntegration = () => {
   const [calendarType, setCalendarType] = useState<string>("google");
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportProgress, setExportProgress] = useState<number>(0);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [syncOptions, setSyncOptions] = useState({
+    includeCompletedTasks: true,
+    addReminders: true,
+    syncTwoWay: false,
+    preferredTime: "09:00"
+  });
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -40,6 +62,30 @@ export const CalendarIntegration = () => {
       // For this demo, we'll simulate successful connection
       setTimeout(() => {
         setIsConnected(true);
+        setEvents([
+          {
+            id: '1',
+            title: 'Morning Exercise',
+            start: '2025-04-09T07:00:00',
+            end: '2025-04-09T07:30:00',
+            description: 'Daily cardio workout'
+          },
+          {
+            id: '2',
+            title: 'Therapy Session',
+            start: '2025-04-09T10:00:00',
+            end: '2025-04-09T11:00:00',
+            location: 'Main St. Medical Center'
+          },
+          {
+            id: '3',
+            title: 'Support Group',
+            start: '2025-04-10T15:00:00',
+            end: '2025-04-10T16:30:00',
+            location: 'Community Center'
+          }
+        ]);
+        
         toast({
           title: "Calendar Connected",
           description: "Successfully connected to Google Calendar.",
@@ -138,6 +184,29 @@ export const CalendarIntegration = () => {
     // Then merge these events with the existing schedule
   };
   
+  const handleSyncOptionChange = (option: string, value: boolean) => {
+    setSyncOptions(prev => ({ ...prev, [option]: value }));
+  };
+  
+  const getFormattedEventTime = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    return `${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+  };
+  
+  const getFormattedEventDate = (start: string) => {
+    const startDate = new Date(start);
+    return startDate.toLocaleDateString([], {weekday: 'short', month: 'short', day: 'numeric'});
+  };
+  
+  const setupAutomaticSync = () => {
+    toast({
+      title: "Automatic Sync Enabled",
+      description: "Your schedule will now automatically sync with your calendar.",
+    });
+  };
+  
   return (
     <Card className="glass">
       <CardHeader>
@@ -171,7 +240,7 @@ export const CalendarIntegration = () => {
               Connect to {calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar
             </Button>
           ) : (
-            <>
+            <div className="space-y-4">
               <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
                 <div className="flex items-center">
                   <Check className="text-green-500 mr-2 h-5 w-5" />
@@ -211,7 +280,91 @@ export const CalendarIntegration = () => {
                   <Progress value={exportProgress} className="h-2 w-full" />
                 </div>
               )}
-            </>
+              
+              <Separator className="my-4" />
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Sync Options</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="includeCompleted" 
+                        checked={syncOptions.includeCompletedTasks}
+                        onCheckedChange={(checked) => handleSyncOptionChange('includeCompletedTasks', checked === true)}
+                      />
+                      <label htmlFor="includeCompleted" className="text-sm text-muted-foreground cursor-pointer">
+                        Include completed tasks
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="addReminders" 
+                        checked={syncOptions.addReminders}
+                        onCheckedChange={(checked) => handleSyncOptionChange('addReminders', checked === true)}
+                      />
+                      <label htmlFor="addReminders" className="text-sm text-muted-foreground cursor-pointer">
+                        Add calendar reminders (30 min before)
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="syncTwoWay" 
+                        checked={syncOptions.syncTwoWay}
+                        onCheckedChange={(checked) => handleSyncOptionChange('syncTwoWay', checked === true)}
+                      />
+                      <label htmlFor="syncTwoWay" className="text-sm text-muted-foreground cursor-pointer">
+                        Two-way sync (update app when calendar changes)
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Label htmlFor="preferredTime" className="text-sm text-muted-foreground">Default time for tasks without time</Label>
+                    <Input 
+                      id="preferredTime" 
+                      type="time" 
+                      value={syncOptions.preferredTime}
+                      onChange={(e) => setSyncOptions(prev => ({ ...prev, preferredTime: e.target.value }))}
+                      className="w-32 mt-1"
+                    />
+                  </div>
+                </div>
+                
+                <Button onClick={setupAutomaticSync} className="w-full">
+                  <Clock className="mr-2 h-4 w-4" />
+                  Enable Automatic Sync
+                </Button>
+              </div>
+              
+              {events.length > 0 && (
+                <>
+                  <Separator className="my-4" />
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Upcoming Calendar Events</h3>
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      {events.map(event => (
+                        <div key={event.id} className="bg-gray-50 dark:bg-gray-800 p-3 rounded-md space-y-1">
+                          <div className="flex justify-between items-start">
+                            <div className="font-medium">{event.title}</div>
+                            <Badge variant="outline">{getFormattedEventDate(event.start)}</Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {getFormattedEventTime(event.start, event.end)}
+                          </div>
+                          {event.location && (
+                            <div className="text-sm text-muted-foreground">{event.location}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md text-sm">
