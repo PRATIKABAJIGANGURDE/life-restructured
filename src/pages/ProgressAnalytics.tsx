@@ -160,7 +160,7 @@ const ProgressAnalytics = () => {
               <CardContent className="p-6">
                 <div className="flex flex-col items-center">
                   <span className="text-muted-foreground text-sm">Highest Completion Rate</span>
-                  <span className="text-3xl font-bold text-green-500 mt-2">{stats.highestCompletionRate}%</span>
+                  <span className="text-3xl font-bold text-green-500 mt-2">{stats.highestCompletionRate.toFixed(2)}%</span>
                 </div>
               </CardContent>
             </Card>

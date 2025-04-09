@@ -233,7 +233,7 @@ export const PeriodicReports = () => {
           <Card className="glass">
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="text-2xl font-bold">{highestCompletion}%</div>
+                <div className="text-2xl font-bold">{highestCompletion.toFixed(2)}%</div>
                 <p className="text-sm text-muted-foreground">Highest Completion</p>
                 <Badge className="mt-2 bg-blue-500">
                   {format(new Date(filteredData.find(item => item.completionRate === highestCompletion)?.date || ""), 'MMM d')}
