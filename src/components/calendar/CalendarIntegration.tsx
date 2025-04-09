@@ -1,11 +1,24 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Download, Upload, Check, FileText, Clock, CalendarCheck, CalendarDays } from "lucide-react";
+import { 
+  Calendar as CalendarIcon, 
+  Download, 
+  Upload, 
+  Check, 
+  FileText, 
+  Clock, 
+  CalendarCheck, 
+  CalendarDays, 
+  Shield, 
+  Activity, 
+  RefreshCw,
+  AlertCircle
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +27,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TabsContent } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ScheduleItem {
   time: string;
@@ -33,12 +48,30 @@ interface CalendarEvent {
   location?: string;
 }
 
+interface ConnectionStatus {
+  status: 'disconnected' | 'connecting' | 'connected' | 'error';
+  lastSynced: string | null;
+  accountInfo: {
+    email?: string;
+    name?: string;
+    avatar?: string;
+    scope?: string[];
+  } | null;
+  errorMessage?: string;
+}
+
 export const CalendarIntegration = () => {
   const [calendarType, setCalendarType] = useState<string>("google");
-  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportProgress, setExportProgress] = useState<number>(0);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+    status: 'disconnected',
+    lastSynced: null,
+    accountInfo: null
+  });
+  const [isVerifyingConnection, setIsVerifyingConnection] = useState<boolean>(false);
   const [syncOptions, setSyncOptions] = useState({
     includeCompletedTasks: true,
     addReminders: true,
@@ -49,8 +82,17 @@ export const CalendarIntegration = () => {
   const { user } = useAuth();
   
   const connectToCalendar = () => {
-    // In a real implementation, we would use OAuth to connect to the calendar service
-    // For demonstration purposes, we'll simulate a successful connection
+    // Set connecting state
+    setIsConnecting(true);
+    setConnectionStatus({
+      ...connectionStatus,
+      status: 'connecting'
+    });
+    
+    toast({
+      title: "Connecting to Calendar",
+      description: `Initiating connection to ${calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar...`,
+    });
     
     // Google Calendar auth URL (this would redirect to Google's OAuth flow)
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/callback')}&response_type=code&scope=https://www.googleapis.com/auth/calendar&access_type=offline&prompt=consent`;
@@ -59,45 +101,78 @@ export const CalendarIntegration = () => {
       // In a real app, we would redirect to the OAuth URL
       // window.location.href = googleAuthUrl;
       
-      // For this demo, we'll simulate successful connection
+      // For this demo, we'll simulate OAuth flow
       setTimeout(() => {
-        setIsConnected(true);
-        setEvents([
-          {
-            id: '1',
-            title: 'Morning Exercise',
-            start: '2025-04-09T07:00:00',
-            end: '2025-04-09T07:30:00',
-            description: 'Daily cardio workout'
-          },
-          {
-            id: '2',
-            title: 'Therapy Session',
-            start: '2025-04-09T10:00:00',
-            end: '2025-04-09T11:00:00',
-            location: 'Main St. Medical Center'
-          },
-          {
-            id: '3',
-            title: 'Support Group',
-            start: '2025-04-10T15:00:00',
-            end: '2025-04-10T16:30:00',
-            location: 'Community Center'
-          }
-        ]);
-        
+        // First simulate the redirect return with auth code
+        setIsVerifyingConnection(true);
         toast({
-          title: "Calendar Connected",
-          description: "Successfully connected to Google Calendar.",
+          title: "Verifying Connection",
+          description: "Authenticating with Google Calendar...",
         });
-      }, 1000);
+        
+        // Then simulate token exchange and API verification
+        setTimeout(() => {
+          setIsVerifyingConnection(false);
+          setIsConnecting(false);
+          
+          // Set connection status to connected with account details
+          setConnectionStatus({
+            status: 'connected',
+            lastSynced: new Date().toISOString(),
+            accountInfo: {
+              email: user?.email || 'user@example.com',
+              name: 'John Doe',
+              scope: ['https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/calendar.events']
+            }
+          });
+          
+          // Load example events
+          setEvents([
+            {
+              id: '1',
+              title: 'Morning Exercise',
+              start: '2025-04-09T07:00:00',
+              end: '2025-04-09T07:30:00',
+              description: 'Daily cardio workout'
+            },
+            {
+              id: '2',
+              title: 'Therapy Session',
+              start: '2025-04-09T10:00:00',
+              end: '2025-04-09T11:00:00',
+              location: 'Main St. Medical Center'
+            },
+            {
+              id: '3',
+              title: 'Support Group',
+              start: '2025-04-10T15:00:00',
+              end: '2025-04-10T16:30:00',
+              location: 'Community Center'
+            }
+          ]);
+          
+          toast({
+            title: "Calendar Connected",
+            description: "Successfully connected and verified with Google Calendar.",
+          });
+        }, 2000);
+      }, 1500);
     } else {
       // For other calendar types
-      toast({
-        title: "Not Implemented",
-        description: `${calendarType} Calendar integration is not yet implemented.`,
-        variant: "destructive",
-      });
+      setTimeout(() => {
+        setIsConnecting(false);
+        setConnectionStatus({
+          ...connectionStatus,
+          status: 'error',
+          errorMessage: `${calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar integration is not yet available.`
+        });
+        
+        toast({
+          title: "Connection Failed",
+          description: `${calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar integration is not yet implemented.`,
+          variant: "destructive",
+        });
+      }, 1000);
     }
   };
   
@@ -231,29 +306,94 @@ export const CalendarIntegration = () => {
             </Select>
           </div>
           
-          {!isConnected ? (
+          {connectionStatus.status === 'disconnected' ? (
             <Button 
               onClick={connectToCalendar} 
               className="w-full"
+              disabled={isConnecting}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Connect to {calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar
+              {isConnecting ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  Connect to {calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar
+                </>
+              )}
             </Button>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
-                <div className="flex items-center">
-                  <Check className="text-green-500 mr-2 h-5 w-5" />
-                  <span>Connected to {calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar</span>
+              {connectionStatus.status === 'error' ? (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {connectionStatus.errorMessage || "Failed to connect to calendar service."}
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto ml-2" 
+                      onClick={() => setConnectionStatus({
+                        status: 'disconnected',
+                        lastSynced: null,
+                        accountInfo: null
+                      })}
+                    >
+                      Try again
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
+                  <div className="flex items-center">
+                    <Check className="text-green-500 mr-2 h-5 w-5" />
+                    <div>
+                      <div>Connected to {calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar</div>
+                      {connectionStatus.accountInfo?.email && (
+                        <div className="text-xs text-muted-foreground">
+                          Account: {connectionStatus.accountInfo.email}
+                        </div>
+                      )}
+                      {connectionStatus.lastSynced && (
+                        <div className="text-xs text-muted-foreground">
+                          Last synced: {new Date(connectionStatus.lastSynced).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setConnectionStatus({
+                            status: 'disconnected',
+                            lastSynced: null,
+                            accountInfo: null
+                          })}
+                        >
+                          Disconnect
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Disconnect from calendar service</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsConnected(false)}
-                >
-                  Disconnect
-                </Button>
-              </div>
+              )}
+              
+              {isVerifyingConnection && (
+                <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                  <div className="flex items-center">
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin text-blue-500" />
+                    <span className="text-sm">Verifying connection with {calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar API...</span>
+                  </div>
+                  <Progress value={65} className="h-1 w-full" />
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <Button 
@@ -339,9 +479,79 @@ export const CalendarIntegration = () => {
                 </Button>
               </div>
               
+              {connectionStatus.status === 'connected' && (
+                <>
+                  <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-md border border-blue-100 dark:border-blue-800">
+                    <h4 className="font-medium mb-2 flex items-center">
+                      <Shield className="h-4 w-4 mr-2 text-blue-500" />
+                      Connection Details
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="grid grid-cols-2 gap-1">
+                        <span className="text-muted-foreground">Service:</span>
+                        <span className="font-medium">{calendarType.charAt(0).toUpperCase() + calendarType.slice(1)} Calendar</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-1">
+                        <span className="text-muted-foreground">Account:</span>
+                        <span className="font-medium">{connectionStatus.accountInfo?.email || 'N/A'}</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-1">
+                        <span className="text-muted-foreground">Status:</span>
+                        <span className="flex items-center">
+                          <Badge className="bg-green-500">Active</Badge>
+                        </span>
+                      </div>
+                      
+                      {connectionStatus.accountInfo?.scope && (
+                        <div className="grid grid-cols-2 gap-1">
+                          <span className="text-muted-foreground">Permissions:</span>
+                          <div className="flex flex-wrap gap-1">
+                            <Badge variant="outline" className="text-xs">Read Events</Badge>
+                            <Badge variant="outline" className="text-xs">Write Events</Badge>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-1">
+                        <span className="text-muted-foreground">Last verification:</span>
+                        <span>{connectionStatus.lastSynced ? new Date(connectionStatus.lastSynced).toLocaleString() : 'Never'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          setIsVerifyingConnection(true);
+                          setTimeout(() => {
+                            setIsVerifyingConnection(false);
+                            setConnectionStatus({
+                              ...connectionStatus,
+                              lastSynced: new Date().toISOString()
+                            });
+                            toast({
+                              title: "Connection Verified",
+                              description: "Calendar connection is active and working properly.",
+                            });
+                          }, 2000);
+                        }}
+                      >
+                        <Activity className="h-3 w-3 mr-1" />
+                        Verify Connection
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                </>
+              )}
+              
               {events.length > 0 && (
                 <>
-                  <Separator className="my-4" />
                   <div>
                     <h3 className="text-lg font-medium mb-2">Upcoming Calendar Events</h3>
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -381,6 +591,62 @@ export const CalendarIntegration = () => {
           </div>
         </div>
       </CardContent>
+      <CardFooter className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div className="flex items-center text-sm">
+          {connectionStatus.status === 'connected' && (
+            <>
+              <div className="flex items-center">
+                <span className="h-2 w-2 rounded-full bg-green-500 mr-1.5"></span>
+                <span>Connected</span>
+              </div>
+              
+              <Separator orientation="vertical" className="mx-2 h-4" />
+              
+              <span className="text-muted-foreground">
+                Next sync in 15 minutes
+              </span>
+            </>
+          )}
+          
+          {connectionStatus.status === 'disconnected' && (
+            <div className="flex items-center">
+              <span className="h-2 w-2 rounded-full bg-gray-400 mr-1.5"></span>
+              <span className="text-muted-foreground">Not connected</span>
+            </div>
+          )}
+          
+          {connectionStatus.status === 'connecting' && (
+            <div className="flex items-center">
+              <span className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse mr-1.5"></span>
+              <span>Connecting...</span>
+            </div>
+          )}
+          
+          {connectionStatus.status === 'error' && (
+            <div className="flex items-center">
+              <span className="h-2 w-2 rounded-full bg-red-500 mr-1.5"></span>
+              <span className="text-red-500">Connection error</span>
+            </div>
+          )}
+        </div>
+        
+        {connectionStatus.status === 'connected' && (
+          <Button variant="ghost" size="sm" onClick={() => {
+            const now = new Date().toISOString();
+            setConnectionStatus({
+              ...connectionStatus,
+              lastSynced: now
+            });
+            toast({
+              title: "Calendar Synced",
+              description: "Calendar data has been refreshed.",
+            });
+          }}>
+            <RefreshCw className="h-3.5 w-3.5 mr-1" />
+            Refresh Now
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   );
 };
