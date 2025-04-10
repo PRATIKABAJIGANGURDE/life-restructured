@@ -22,6 +22,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Suggestions from "./pages/Suggestions";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
 import Integration from "./pages/Integration";
+import Pricing from "./pages/Pricing";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -119,6 +121,8 @@ const AppRoutes = () => (
     <Route path="/integration" element={<ProtectedRoute><Integration /></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+    <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+    <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

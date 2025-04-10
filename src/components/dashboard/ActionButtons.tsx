@@ -1,61 +1,47 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { RefreshCcw, RefreshCw, Loader } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../ui/button';
+import { BarChart, Calendar, Settings, CreditCard } from 'lucide-react';
 
-interface ActionButtonsProps {
-  isLoading: boolean;
-  hasSchedule: boolean;
-  resetDailyTasks: () => void;
-  regeneratePlan: () => void;
-}
+export const ActionButtons = () => {
+  const navigate = useNavigate();
 
-export const ActionButtons: React.FC<ActionButtonsProps> = ({
-  isLoading,
-  hasSchedule,
-  resetDailyTasks,
-  regeneratePlan,
-}) => {
   return (
-    <div className="mb-6 flex justify-end gap-2">
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button 
-            variant="outline"
-            className="flex items-center gap-2"
-            disabled={isLoading || !hasSchedule}
-          >
-            <RefreshCcw className="h-4 w-4" />
-            Reset Daily Tasks
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset all daily tasks?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will mark all tasks as incomplete. Your progress history will be preserved.
-              Note: Tasks are automatically reset at midnight each day.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={resetDailyTasks}>Reset</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+      <Button 
+        variant="outline" 
+        className="flex flex-col items-center justify-center h-24 space-y-2"
+        onClick={() => navigate('/progress-analytics')}
+      >
+        <BarChart className="h-6 w-6" />
+        <span>Analytics</span>
+      </Button>
       
       <Button 
-        onClick={regeneratePlan} 
-        disabled={isLoading}
-        className="flex items-center gap-2"
+        variant="outline" 
+        className="flex flex-col items-center justify-center h-24 space-y-2"
+        onClick={() => navigate('/integration')}
       >
-        {isLoading ? (
-          <Loader className="h-4 w-4 animate-spin" />
-        ) : (
-          <RefreshCw className="h-4 w-4" />
-        )}
-        Generate New Plan
+        <Calendar className="h-6 w-6" />
+        <span>Calendar</span>
+      </Button>
+      
+      <Button 
+        variant="outline" 
+        className="flex flex-col items-center justify-center h-24 space-y-2"
+        onClick={() => navigate('/settings')}
+      >
+        <Settings className="h-6 w-6" />
+        <span>Settings</span>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        className="flex flex-col items-center justify-center h-24 space-y-2"
+        onClick={() => navigate('/pricing')}
+      >
+        <CreditCard className="h-6 w-6" />
+        <span>Premium</span>
       </Button>
     </div>
   );
