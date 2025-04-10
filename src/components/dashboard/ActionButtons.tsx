@@ -1,7 +1,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { BarChart, Calendar, Settings, CreditCard, RefreshCw, RotateCcw, Loader } from 'lucide-react';
+import { BarChart, Calendar, Settings, CreditCard, RefreshCw, RotateCcw, FileBarChart, Loader } from 'lucide-react';
 
 interface ActionButtonsProps {
   isLoading?: boolean;
@@ -32,10 +32,10 @@ export const ActionButtons = ({
       <Button 
         variant="outline" 
         className="flex flex-col items-center justify-center h-24 space-y-2"
-        onClick={() => navigate('/integration')}
+        onClick={() => navigate('/reports')}
       >
-        <Calendar className="h-6 w-6" />
-        <span>Calendar</span>
+        <FileBarChart className="h-6 w-6" />
+        <span>Reports</span>
       </Button>
       
       <Button 

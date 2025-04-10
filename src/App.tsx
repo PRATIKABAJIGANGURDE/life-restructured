@@ -24,6 +24,7 @@ import ProgressAnalytics from "./pages/ProgressAnalytics";
 import Integration from "./pages/Integration";
 import Pricing from "./pages/Pricing";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import Reports from "./pages/Reports";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -118,6 +119,7 @@ const AppRoutes = () => (
       </ProtectedRoute>
     } />
     <Route path="/progress-analytics" element={<ProtectedRoute><ProgressAnalytics /></ProtectedRoute>} />
+    <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
     <Route path="/integration" element={<ProtectedRoute><Integration /></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
