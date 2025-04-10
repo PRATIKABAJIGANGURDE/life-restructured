@@ -25,9 +25,24 @@ const Reports = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    const loadProgressData = () => {
+    const loadProgressData = async () => {
       setIsLoading(true);
       try {
+        // Try to load from Supabase first
+        if (user?.id) {
+          const { loadProgressHistory } = await import("@/services/progressService");
+          const supabaseProgressHistory = await loadProgressHistory(user.id);
+          
+          if (supabaseProgressHistory && supabaseProgressHistory.length > 0) {
+            setProgressHistory(supabaseProgressHistory);
+            // Update localStorage with the latest data
+            localStorage.setItem('progressHistory', JSON.stringify(supabaseProgressHistory));
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // Fall back to localStorage
         const savedProgress = localStorage.getItem('progressHistory');
         if (savedProgress) {
           const parsedProgress = JSON.parse(savedProgress);
@@ -41,7 +56,7 @@ const Reports = () => {
     };
     
     loadProgressData();
-  }, []);
+  }, [user]);
 
   const handleExportData = () => {
     try {
