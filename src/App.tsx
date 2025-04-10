@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,9 +35,11 @@ const App = () => {
       <BrowserRouter>
         <TooltipProvider>
           <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
+            <SubscriptionProvider>
+              <Toaster />
+              <Sonner />
+              <AppRoutes />
+            </SubscriptionProvider>
           </AuthProvider>
         </TooltipProvider>
       </BrowserRouter>
