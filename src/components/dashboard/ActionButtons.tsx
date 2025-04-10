@@ -1,13 +1,25 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
-import { BarChart, Calendar, Settings, CreditCard } from 'lucide-react';
+import { BarChart, Calendar, Settings, CreditCard, RefreshCw, RotateCcw, Loader } from 'lucide-react';
 
-export const ActionButtons = () => {
+interface ActionButtonsProps {
+  isLoading?: boolean;
+  hasSchedule?: boolean;
+  resetDailyTasks?: () => void;
+  regeneratePlan?: (userInputs?: any) => Promise<void>;
+}
+
+export const ActionButtons = ({ 
+  isLoading = false, 
+  hasSchedule = false,
+  resetDailyTasks,
+  regeneratePlan 
+}: ActionButtonsProps) => {
   const navigate = useNavigate();
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
       <Button 
         variant="outline" 
         className="flex flex-col items-center justify-center h-24 space-y-2"
