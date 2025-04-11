@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Define the suggestion form schema
 const suggestionSchema = z.object({
@@ -26,6 +28,7 @@ type SuggestionFormValues = z.infer<typeof suggestionSchema>;
 const Suggestions: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   // Initialize the form
   const form = useForm<SuggestionFormValues>({
@@ -42,11 +45,18 @@ const Suggestions: React.FC = () => {
   const onSubmit = async (data: SuggestionFormValues) => {
     setIsSubmitting(true);
     try {
-      // Here you would typically send this data to your backend
-      console.log("Suggestion data:", data);
-      
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Create the suggestion record in Supabase
+      const { error } = await supabase
+        .from('suggestions')
+        .insert({
+          name: data.name || null,
+          email: data.email,
+          subject: data.subject,
+          message: data.message,
+          user_id: user?.id || null
+        });
+        
+      if (error) throw error;
       
       // Show success notification
       toast({
@@ -56,11 +66,11 @@ const Suggestions: React.FC = () => {
       
       // Reset form
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting suggestion:", error);
       toast({
         title: "Submission failed",
-        description: "There was a problem submitting your suggestion. Please try again.",
+        description: error.message || "There was a problem submitting your suggestion. Please try again.",
         variant: "destructive",
       });
     } finally {
