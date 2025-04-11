@@ -3,15 +3,12 @@ import React from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PeriodicReports } from "@/components/reports/PeriodicReports";
 import { CalendarIntegration } from "@/components/calendar/CalendarIntegration";
-import { PremiumFeature } from "@/components/premium/PremiumFeature"; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Calendar, ArrowLeft, CreditCard } from "lucide-react";
+import { FileText, Calendar, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "@/contexts/SubscriptionContext";
 
 const Integration = () => {
-  const { isPremium } = useSubscription();
   const navigate = useNavigate();
 
   return (
@@ -43,13 +40,7 @@ const Integration = () => {
                   <PeriodicReports />
                 </div>
                 <div>
-                  <PremiumFeature 
-                    title="Calendar Integration" 
-                    description="Sync your recovery plan with Google Calendar, Apple Calendar, or Outlook to stay on track and never miss important appointments."
-                    isPremium={isPremium}
-                  >
-                    <CalendarIntegration />
-                  </PremiumFeature>
+                  <CalendarIntegration />
                 </div>
               </div>
             </div>
@@ -70,13 +61,7 @@ const Integration = () => {
                   <PeriodicReports />
                 </TabsContent>
                 <TabsContent value="calendar">
-                  <PremiumFeature 
-                    title="Calendar Integration" 
-                    description="Sync your recovery plan with Google Calendar, Apple Calendar, or Outlook to stay on track."
-                    isPremium={isPremium}
-                  >
-                    <CalendarIntegration />
-                  </PremiumFeature>
+                  <CalendarIntegration />
                 </TabsContent>
               </Tabs>
             </div>
