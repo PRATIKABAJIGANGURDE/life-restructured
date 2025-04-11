@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileBarChart, FileText, FileSpreadsheet, Download, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProgressHistoryItem {
   date: string;
@@ -23,6 +24,7 @@ const Reports = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   useEffect(() => {
     const loadProgressData = async () => {
