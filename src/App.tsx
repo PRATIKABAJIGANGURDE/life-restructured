@@ -9,6 +9,8 @@ import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { useAuth } from "./contexts/AuthContext";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "./hooks/use-mobile";
+import { MobileUnavailable } from "./components/layout/MobileUnavailable";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Login from "./pages/Login";
@@ -27,6 +29,17 @@ import Pricing from "./pages/Pricing";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Reports from "./pages/Reports";
 
+// MobileCheck component to conditionally render content based on device type
+const MobileCheck = ({ children }: { children: React.ReactNode }) => {
+  const isMobile = useIsMobile();
+  
+  if (isMobile) {
+    return <MobileUnavailable />;
+  }
+  
+  return <>{children}</>;
+};
+
 const App = () => {
   const queryClient = new QueryClient();
   
@@ -38,7 +51,9 @@ const App = () => {
             <SubscriptionProvider>
               <Toaster />
               <Sonner />
-              <AppRoutes />
+              <MobileCheck>
+                <AppRoutes />
+              </MobileCheck>
             </SubscriptionProvider>
           </AuthProvider>
         </TooltipProvider>
