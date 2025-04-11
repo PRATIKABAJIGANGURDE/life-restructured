@@ -19,33 +19,19 @@ const Integration = () => {
       <div className="min-h-screen flex flex-col">
         <div className="flex-1 py-4 md:py-8 px-3 md:px-4">
           <div className="container max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Button>
-                <h1 className="text-2xl md:text-3xl font-medium">
-                  Integrations & Reports
-                </h1>
-              </div>
-              
-              {!isPremium && (
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                  onClick={() => navigate('/pricing')}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Upgrade
-                </Button>
-              )}
+            <div className="flex items-center gap-2 mb-6">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <h1 className="text-2xl md:text-3xl font-medium">
+                Integrations & Reports
+              </h1>
             </div>
             <p className="text-muted-foreground text-sm md:text-base mb-6">
               Track your progress and sync your schedule with external services

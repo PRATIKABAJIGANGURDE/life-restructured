@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface SubscriptionContextType {
   isLoading: boolean;
@@ -12,33 +11,15 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  // All features are now free - always set isPremium to true
+  const [isPremium, setIsPremium] = useState(true);
   const { user } = useAuth();
 
+  // This function now always sets isPremium to true, making all features free
   const checkPremiumStatus = async () => {
-    if (!user) {
-      setIsPremium(false);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // In a real implementation, this would call your supabase function to check subscription status
-      // const { data, error } = await supabase.functions.invoke('check-subscription');
-      // if (error) throw error;
-      // setIsPremium(data.subscribed);
-      
-      // For now, we'll use local storage as a simulation
-      const hasPremium = localStorage.getItem('premiumUser') === 'true';
-      setIsPremium(hasPremium);
-    } catch (error) {
-      console.error('Error checking subscription status:', error);
-      setIsPremium(false);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
+    setIsPremium(true); // Everything is free
   };
 
   useEffect(() => {
