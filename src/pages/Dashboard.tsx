@@ -141,28 +141,12 @@ const Dashboard = () => {
               }
             }
             
-            // Try to load progress history from Supabase first, if that fails, use localStorage
+            // Only load progress data from Supabase
             if (user?.id) {
               import("@/services/progressService").then(async ({ loadProgressHistory }) => {
                 const supabaseProgressHistory = await loadProgressHistory(user.id!);
-                if (supabaseProgressHistory && supabaseProgressHistory.length > 0) {
-                  setProgressHistory(supabaseProgressHistory);
-                  // Update localStorage with the latest data from Supabase
-                  localStorage.setItem('progressHistory', JSON.stringify(supabaseProgressHistory));
-                } else {
-                  // Fall back to localStorage if no data in Supabase
-                  const progressData = localStorage.getItem('progressHistory');
-                  if (progressData) {
-                    setProgressHistory(JSON.parse(progressData));
-                  }
-                }
+                setProgressHistory(supabaseProgressHistory);
               });
-            } else {
-              // Use localStorage if user isn't logged in
-              const progressData = localStorage.getItem('progressHistory');
-              if (progressData) {
-                setProgressHistory(JSON.parse(progressData));
-              }
             }
             
             setIsLoading(false);

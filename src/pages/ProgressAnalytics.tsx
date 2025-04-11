@@ -9,13 +9,7 @@ import { ArrowLeft, BarChart, ChartPie, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-
-interface ProgressHistoryItem {
-  date: string;
-  completionRate: number;
-  tasksCompleted: number;
-  totalTasks: number;
-}
+import { ProgressHistoryItem, fetchProgressData } from "@/utils/progressDataUtils";
 
 const ProgressAnalytics = () => {
   const [progressHistory, setProgressHistory] = useState<ProgressHistoryItem[]>([]);
@@ -24,13 +18,12 @@ const ProgressAnalytics = () => {
   const { user } = useAuth();
   
   useEffect(() => {
-    const loadProgressData = () => {
+    const loadProgressData = async () => {
       setIsLoading(true);
       try {
-        const savedProgress = localStorage.getItem('progressHistory');
-        if (savedProgress) {
-          const parsedProgress = JSON.parse(savedProgress);
-          setProgressHistory(parsedProgress);
+        if (user?.id) {
+          const data = await fetchProgressData(user.id);
+          setProgressHistory(data);
         }
       } catch (error) {
         console.error("Error loading progress data:", error);
@@ -40,7 +33,7 @@ const ProgressAnalytics = () => {
     };
     
     loadProgressData();
-  }, []);
+  }, [user]);
   
   // Calculate statistics
   const calculateStats = () => {

@@ -13,13 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-interface ProgressHistoryItem {
-  date: string;
-  completionRate: number;
-  tasksCompleted: number;
-  totalTasks: number;
-}
+import { ProgressHistoryItem, fetchProgressData } from "@/utils/progressDataUtils";
 
 export const PeriodicReports = () => {
   const [progressHistory, setProgressHistory] = useState<ProgressHistoryItem[]>([]);
@@ -31,46 +25,28 @@ export const PeriodicReports = () => {
   const { user } = useAuth();
   
   useEffect(() => {
-    loadProgressHistory();
+    if (user?.id) {
+      loadProgressHistory();
+    }
   }, [user]);
   
-  const loadProgressHistory = () => {
-    // In a real app, we would fetch this from the backend
-    // For now, using localStorage as a placeholder
-    const storedData = localStorage.getItem('progressHistory');
-    if (storedData) {
-      setProgressHistory(JSON.parse(storedData));
-    } else {
-      // Generate sample data if none exists
-      const sampleData = generateSampleProgressData();
-      setProgressHistory(sampleData);
-      localStorage.setItem('progressHistory', JSON.stringify(sampleData));
-    }
-  };
-  
-  // Generate sample data for demonstration
-  const generateSampleProgressData = (): ProgressHistoryItem[] => {
-    const data: ProgressHistoryItem[] = [];
-    const today = new Date();
-    
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      // Generate random completion data
-      const totalTasks = Math.floor(Math.random() * 10) + 5;
-      const tasksCompleted = Math.floor(Math.random() * totalTasks);
-      const completionRate = (tasksCompleted / totalTasks) * 100;
-      
-      data.push({
-        date: date.toISOString(),
-        completionRate,
-        tasksCompleted,
-        totalTasks
+  const loadProgressHistory = async () => {
+    setLoading(true);
+    try {
+      if (user?.id) {
+        const data = await fetchProgressData(user.id);
+        setProgressHistory(data);
+      }
+    } catch (error) {
+      console.error('Error loading progress data:', error);
+      toast({
+        title: "Error loading data",
+        description: "Could not load your progress data. Please try again later.",
+        variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-    
-    return data;
   };
   
   const generateReport = async () => {

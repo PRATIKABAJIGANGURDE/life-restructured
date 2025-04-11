@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
+import { saveDailyProgress } from "@/services/progressService";
 
 interface DailyProgressProps {
   completedTasksCount: number;
@@ -85,6 +86,29 @@ export const DailyProgress: React.FC<DailyProgressProps> = ({
     }
   };
 
+  // Save progress to Supabase
+  useEffect(() => {
+    const saveProgress = async () => {
+      if (!userId || totalTasks <= 0) return;
+      
+      try {
+        const today = new Date();
+        const progressData = {
+          date: today.toISOString(),
+          completionRate: completionRate,
+          tasksCompleted: completedTasksCount,
+          totalTasks: totalTasks
+        };
+        
+        await saveDailyProgress(userId, progressData);
+      } catch (error) {
+        console.error("Error saving progress:", error);
+      }
+    };
+    
+    saveProgress();
+  }, [completedTasksCount, totalTasks, userId, completionRate]);
+  
   return (
     <Card className="glass transition-all">
       <CardContent className="p-4 md:p-6">
